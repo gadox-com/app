@@ -5,6 +5,7 @@ import AnimalModal from '../components/AnimalModal'
 import ConfinamentoModal from '../components/ConfinamentoModal'
 import ReproducaoModal from '../components/ReproducaoModal'
 import VendaModal from '../components/VendaModal'
+import AnimalPerfil from '../components/AnimalPerfil'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 const CATEGORIAS = ['Todas', 'BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI']
@@ -24,6 +25,7 @@ export default function Animais() {
   const [modalConf, setModalConf] = useState({ open: false, data: null })
   const [modalRep, setModalRep] = useState({ open: false, data: null })
   const [modalVenda, setModalVenda] = useState({ open: false, data: null })
+  const [perfilId, setPerfilId] = useState(null)
 
   useEffect(() => { fetchAnimais() }, [])
 
@@ -220,7 +222,11 @@ export default function Animais() {
                     key={animal.id}
                     className={`hover:bg-gray-50/50 transition-colors ${animal.status === 'VENDIDO' ? 'opacity-60' : ''}`}
                   >
-                    <td className="px-4 py-3 font-mono font-semibold text-gray-900">{animal.brinco}</td>
+                    <td className="px-4 py-3 font-mono font-semibold text-gray-900">
+                      <button onClick={() => setPerfilId(animal.id)} className="hover:text-orange-500 transition-colors">
+                        {animal.brinco}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-gray-700">{animal.raca}</td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-medium">
@@ -310,6 +316,12 @@ export default function Animais() {
         isOpen={modalVenda.open}
         onClose={() => setModalVenda({ open: false, data: null })}
         animal={modalVenda.data}
+        onSaved={fetchAnimais}
+      />
+      <AnimalPerfil
+        isOpen={!!perfilId}
+        onClose={() => setPerfilId(null)}
+        animalId={perfilId}
         onSaved={fetchAnimais}
       />
     </div>

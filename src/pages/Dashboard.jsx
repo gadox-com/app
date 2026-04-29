@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package, DollarSign } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
+import AnimalPerfil from '../components/AnimalPerfil'
 
 const FAZENDAS = [
   { key: 'SARANDI', label: 'Sarandi' },
@@ -16,7 +17,7 @@ export default function Dashboard({ onNavigate }) {
   const [animais, setAnimais] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [modalAnimal, setModalAnimal] = useState({ open: false, data: null })
+  const [perfilId, setPerfilId] = useState(null)
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
@@ -229,7 +230,7 @@ export default function Dashboard({ onNavigate }) {
                     : ultimos.map(animal => (
                       <button
                         key={animal.id}
-                        onClick={() => setModalAnimal({ open: true, data: animal })}
+                        onClick={() => setPerfilId(animal.id)}
                         className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 transition-colors text-left group"
                       >
                         <span className="font-mono text-xs text-gray-300 w-6 flex-shrink-0">{animal.brinco}</span>
@@ -271,7 +272,7 @@ export default function Dashboard({ onNavigate }) {
             {recentes.map((animal, i) => (
               <button
                 key={animal.id}
-                onClick={() => setModalAnimal({ open: true, data: animal })}
+                onClick={() => setPerfilId(animal.id)}
                 className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors text-left group"
               >
                 <span className="text-xs text-gray-200 w-4 flex-shrink-0 font-medium">{i + 1}</span>
@@ -298,10 +299,10 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      <AnimalModal
-        isOpen={modalAnimal.open}
-        onClose={() => setModalAnimal({ open: false, data: null })}
-        animal={modalAnimal.data}
+      <AnimalPerfil
+        isOpen={!!perfilId}
+        onClose={() => setPerfilId(null)}
+        animalId={perfilId}
         onSaved={fetchData}
       />
     </div>
