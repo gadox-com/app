@@ -1,24 +1,30 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { MapPin, RefreshCw, AlertCircle, ChevronRight, Clock, Beef } from 'lucide-react'
+import { MapPin, RefreshCw, AlertCircle, ChevronRight, Clock } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
 
 const FAZENDAS = [
-  { key: 'SARANDI', label: 'Sarandi' },
-  { key: 'CASA', label: 'Casa' },
-  { key: 'CAPANEMA', label: 'Capanema' },
+  { key: 'SARANDI', label: 'Sarandi', emoji: '🌾' },
+  { key: 'CASA', label: 'Casa', emoji: '🏠' },
+  { key: 'CAPANEMA', label: 'Capanema', emoji: '🌿' },
 ]
 
 const CATEGORIAS_ORDER = ['BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI']
 
-function contarCategorias(lista) {
-  const map = {}
-  lista.forEach(a => { map[a.categoria] = (map[a.categoria] || 0) + 1 })
-  return CATEGORIAS_ORDER
-    .filter(c => map[c])
-    .map(c => `${map[c]} ${c.charAt(0) + c.slice(1).toLowerCase()}`)
-    .join(' · ')
+function StatBox({ label, value, color = 'text-gray-900', size = 'normal' }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center px-3 py-2">
+      <div className={`font-bold leading-tight ${size === 'large' ? 'text-3xl' : 'text-xl'} ${color}`}>
+        {value}
+      </div>
+      <div className="text-xs text-gray-400 font-medium mt-0.5 whitespace-nowrap">{label}</div>
+    </div>
+  )
+}
+
+function Divider() {
+  return <div className="w-px bg-gray-100 self-stretch my-1" />
 }
 
 export default function Dashboard({ onNavigate }) {
@@ -76,78 +82,119 @@ export default function Dashboard({ onNavigate }) {
 
   const formatDate = (d) => {
     if (!d) return '—'
-    return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+    const date = new Date(d)
+    const now = new Date()
+    const diff = Math.floor((now - date) / 1000)
+    if (diff < 60) return 'agora'
+    if (diff < 3600) return `${Math.floor(diff / 60)}min atrás`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d atrás`
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
   }
-
-  const metricas = [
-    { label: 'Total', value: animais.length, color: 'text-gray-900' },
-    { label: 'Ativos', value: ativos.length, color: 'text-green-600' },
-    { label: 'Vendidos', value: vendidos.length, color: 'text-gray-400' },
-    { label: 'Machos', value: machos.length, color: 'text-blue-600' },
-    { label: 'Fêmeas', value: femeas.length, color: 'text-pink-500' },
-    { label: 'Bezerros', value: bezerros.length, color: 'text-orange-500' },
-    { label: 'Novilhos', value: novilhos.length, color: 'text-gray-700' },
-    { label: 'Vacas', value: vacas.length, color: 'text-gray-700' },
-    { label: 'Touros', value: touros.length, color: 'text-gray-700' },
-    { label: 'Bois', value: bois.length, color: 'text-gray-700' },
-    { label: 'Total Vendas', value: totalVendas > 0 ? `R$ ${totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—', color: 'text-green-700' },
-  ]
 
   return (
     <div className="p-6 lg:p-8 space-y-5">
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500 mt-0.5">Visão geral do rebanho</p>
         </div>
-        <button onClick={fetchData} className="btn-secondary p-2">
+        <button onClick={fetchData} className="btn-secondary p-2" title="Atualizar">
           <RefreshCw size={15} />
         </button>
       </div>
 
-      {/* Totais gerais */}
-      <div className="card p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Beef size={15} className="text-orange-500" />
-          <span className="text-sm font-bold text-gray-900">Totais do Rebanho</span>
-        </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-11 gap-x-4 gap-y-4">
-          {metricas.map(m => (
-            <div key={m.label} className="text-center">
-              <div className={`text-2xl font-bold leading-tight ${m.color}`}>{m.value}</div>
-              <div className="text-xs text-gray-400 mt-0.5 font-medium">{m.label}</div>
+      {/* BLOCO 1 — Totais gerais */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+        {/* Total / Ativos / Vendidos */}
+        <div className="card p-4">
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">🐄 Rebanho</div>
+          <div className="flex items-stretch divide-x divide-gray-100">
+            <StatBox label="Total" value={animais.length} color="text-gray-900" size="large" />
+            <StatBox label="Ativos" value={ativos.length} color="text-green-600" size="large" />
+            <StatBox label="Vendidos" value={vendidos.length} color="text-gray-400" />
+          </div>
+          {totalVendas > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-100 text-center">
+              <div className="text-xs text-gray-400 mb-0.5">💰 Total em Vendas</div>
+              <div className="text-base font-bold text-green-700">
+                R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              </div>
             </div>
-          ))}
+          )}
         </div>
+
+        {/* Machos / Fêmeas */}
+        <div className="card p-4">
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">⚥ Sexo</div>
+          <div className="flex items-stretch divide-x divide-gray-100">
+            <StatBox label="🐂 Machos" value={machos.length} color="text-blue-600" size="large" />
+            <StatBox label="🐄 Fêmeas" value={femeas.length} color="text-pink-500" size="large" />
+          </div>
+        </div>
+
+        {/* Categorias */}
+        <div className="card p-4">
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">🏷️ Categorias</div>
+          <div className="grid grid-cols-3 gap-y-3">
+            {[
+              { label: '🍼 Bezerros', value: bezerros.length },
+              { label: '📈 Novilhos', value: novilhos.length },
+              { label: '🐄 Vacas', value: vacas.length },
+              { label: '🐂 Touros', value: touros.length },
+              { label: '🥩 Bois', value: bois.length },
+            ].map(item => (
+              <div key={item.label} className="text-center">
+                <div className="text-lg font-bold text-gray-700">{item.value}</div>
+                <div className="text-xs text-gray-400 leading-tight">{item.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
 
-      {/* Cards por fazenda */}
+      {/* BLOCO 2 — Cards por fazenda */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {FAZENDAS.map(({ key, label }) => {
+        {FAZENDAS.map(({ key, label, emoji }) => {
           const lista = ativos.filter(a => a.local === key)
           const ultimos = [...lista]
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 6)
-          const resumo = contarCategorias(lista)
+            .slice(0, 5)
+
+          // Contagem por categoria
+          const cats = CATEGORIAS_ORDER
+            .map(c => ({ cat: c, count: lista.filter(a => a.categoria === c).length }))
+            .filter(x => x.count > 0)
 
           return (
             <div key={key} className="card flex flex-col overflow-hidden">
               {/* Header */}
               <div className="px-5 pt-4 pb-3 border-b border-gray-100">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <MapPin size={13} className="text-orange-500" />
-                    <span className="font-bold text-gray-900 text-sm">{label}</span>
+                    <span className="text-base">{emoji}</span>
+                    <span className="font-bold text-gray-900">{label}</span>
                   </div>
                   <span className="text-2xl font-bold text-orange-500">{lista.length}</span>
                 </div>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  {resumo || 'Nenhum animal ativo'}
-                </p>
+                {/* Categorias em chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {cats.length === 0 ? (
+                    <span className="text-xs text-gray-400">Nenhum ativo</span>
+                  ) : cats.map(({ cat, count }) => (
+                    <span key={cat} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                      <span className="font-bold text-gray-900">{count}</span>
+                      <span>{cat.charAt(0) + cat.slice(1).toLowerCase()}</span>
+                    </span>
+                  ))}
+                </div>
               </div>
 
-              {/* Lista */}
+              {/* Lista prévia */}
               <div className="flex-1 divide-y divide-gray-50">
                 {ultimos.length === 0 ? (
                   <div className="px-5 py-6 text-center text-sm text-gray-400">
@@ -158,33 +205,30 @@ export default function Dashboard({ onNavigate }) {
                     <button
                       key={animal.id}
                       onClick={() => setModalAnimal({ open: true, data: animal })}
-                      className="w-full flex items-center justify-between px-5 py-2.5 hover:bg-gray-50 transition-colors text-left group"
+                      className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 transition-colors text-left group"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-xs font-bold text-gray-400 w-8 flex-shrink-0">#{animal.brinco}</span>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{animal.raca}</div>
-                          <div className="text-xs text-gray-400">{animal.categoria} · {animal.sexo === 'MACHO' ? 'Macho' : 'Fêmea'}</div>
+                      <span className="font-mono text-xs font-bold text-gray-300 w-7 flex-shrink-0">
+                        {animal.brinco}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-800 truncate">{animal.raca}</div>
+                        <div className="text-xs text-gray-400">
+                          {animal.categoria} · {animal.sexo === 'MACHO' ? '♂' : '♀'}
+                          {animal.peso ? ` · ${animal.peso}kg` : ''}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {animal.peso && (
-                          <span className="text-xs font-semibold text-gray-600">{animal.peso} kg</span>
-                        )}
-                        <ChevronRight size={13} className="text-gray-300 group-hover:text-orange-400 transition-colors" />
-                      </div>
+                      <ChevronRight size={13} className="text-gray-200 group-hover:text-orange-400 flex-shrink-0 transition-colors" />
                     </button>
                   ))
                 )}
               </div>
 
-              {/* Ver todos */}
-              {lista.length > 6 && (
+              {lista.length > 5 && (
                 <button
                   onClick={() => onNavigate('animais')}
-                  className="px-5 py-3 border-t border-gray-100 text-xs font-semibold text-orange-500 hover:text-orange-600 hover:bg-orange-50 transition-colors text-center"
+                  className="px-5 py-2.5 border-t border-gray-100 text-xs font-semibold text-orange-500 hover:bg-orange-50 transition-colors text-center"
                 >
-                  Ver todos os {lista.length} animais →
+                  + {lista.length - 5} animais — ver todos →
                 </button>
               )}
             </div>
@@ -192,9 +236,9 @@ export default function Dashboard({ onNavigate }) {
         })}
       </div>
 
-      {/* Últimas alterações */}
+      {/* BLOCO 3 — Últimas alterações */}
       <div className="card overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <Clock size={14} className="text-orange-500" />
             <span className="font-bold text-gray-900 text-sm">Últimas Alterações</span>
@@ -208,26 +252,40 @@ export default function Dashboard({ onNavigate }) {
             <button
               key={animal.id}
               onClick={() => setModalAnimal({ open: true, data: animal })}
-              className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors text-left group"
+              className="w-full flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors text-left group"
             >
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-xs font-bold text-gray-400 w-10 flex-shrink-0">#{animal.brinco}</span>
-                <div>
-                  <div className="text-sm font-medium text-gray-900">{animal.raca} · {animal.categoria}</div>
-                  <div className="text-xs text-gray-400">
-                    {animal.local} · {animal.sexo}
-                    {animal.peso ? ` · ${animal.peso} kg` : ''}
-                  </div>
+              {/* Brinco */}
+              <span className="font-mono text-xs font-bold text-gray-400 w-8 flex-shrink-0">
+                #{animal.brinco}
+              </span>
+
+              {/* Info principal */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-900 truncate">{animal.raca}</span>
+                  <span className="text-xs text-gray-400 hidden sm:inline">·</span>
+                  <span className="text-xs text-gray-500 hidden sm:inline">{animal.categoria}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-gray-400">{animal.local}</span>
+                  {animal.peso && <>
+                    <span className="text-gray-200">·</span>
+                    <span className="text-xs text-gray-500 font-medium">{animal.peso} kg</span>
+                  </>}
                 </div>
               </div>
+
+              {/* Status + tempo */}
               <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="text-right hidden sm:block">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${animal.status === 'ATIVO' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {animal.status}
-                  </span>
-                  <div className="text-xs text-gray-400 mt-0.5">{formatDate(animal.updated_at || animal.created_at)}</div>
-                </div>
-                <ChevronRight size={14} className="text-gray-300 group-hover:text-orange-400 transition-colors" />
+                <span className={`text-xs font-medium px-2 py-0.5 rounded-full hidden sm:inline-block ${
+                  animal.status === 'ATIVO' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {animal.status === 'ATIVO' ? '● Ativo' : '○ Vendido'}
+                </span>
+                <span className="text-xs text-gray-400 w-16 text-right">
+                  {formatDate(animal.updated_at || animal.created_at)}
+                </span>
+                <ChevronRight size={14} className="text-gray-200 group-hover:text-orange-400 transition-colors" />
               </div>
             </button>
           ))}
