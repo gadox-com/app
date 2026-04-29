@@ -29,12 +29,27 @@ export default function Animais() {
 
   async function fetchAnimais() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('animais')
-      .select('*')
-      .order('brinco')
-    if (!error) setAnimais(data || [])
-    setLoading(false)
+    try {
+      let all = []
+      let from = 0
+      const pageSize = 1000
+      while (true) {
+        const { data, error } = await supabase
+          .from('animais')
+          .select('*')
+          .order('brinco')
+          .range(from, from + pageSize - 1)
+        if (error) throw error
+        all = [...all, ...(data || [])]
+        if (!data || data.length < pageSize) break
+        from += pageSize
+      }
+      setAnimais(all)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function deleteAnimal(animal) {

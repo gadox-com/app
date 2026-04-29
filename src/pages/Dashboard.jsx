@@ -18,11 +18,15 @@ export default function Dashboard({ onNavigate }) {
   async function fetchDashboardData() {
     try {
       setLoading(true)
-      const { data: animais, error } = await supabase
-        .from('animais')
-        .select('*')
-
-      if (error) throw error
+      let animais = []
+      let from = 0
+      while (true) {
+        const { data, error } = await supabase.from('animais').select('*').range(from, from + 999)
+        if (error) throw error
+        animais = [...animais, ...(data || [])]
+        if (!data || data.length < 1000) break
+        from += 1000
+      }
 
       const ativos = animais.filter(a => a.status === 'ATIVO')
       const vendidos = animais.filter(a => a.status === 'VENDIDO')

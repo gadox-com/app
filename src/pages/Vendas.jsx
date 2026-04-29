@@ -12,12 +12,15 @@ export default function Vendas() {
 
   async function fetchVendas() {
     setLoading(true)
-    const { data } = await supabase
-      .from('animais')
-      .select('*')
-      .eq('status', 'VENDIDO')
-      .order('saida', { ascending: false })
-    setVendas(data || [])
+    let all = []
+    let from = 0
+    while (true) {
+      const { data } = await supabase.from('animais').select('*').eq('status', 'VENDIDO').order('saida', { ascending: false }).range(from, from + 999)
+      all = [...all, ...(data || [])]
+      if (!data || data.length < 1000) break
+      from += 1000
+    }
+    setVendas(all)
     setLoading(false)
   }
 

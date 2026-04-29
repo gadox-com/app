@@ -18,8 +18,15 @@ export default function Relatorios() {
 
   async function fetchAnimais() {
     setLoading(true)
-    const { data } = await supabase.from('animais').select('*').order('brinco')
-    setAnimais(data || [])
+    let all = []
+    let from = 0
+    while (true) {
+      const { data } = await supabase.from('animais').select('*').order('brinco').range(from, from + 999)
+      all = [...all, ...(data || [])]
+      if (!data || data.length < 1000) break
+      from += 1000
+    }
+    setAnimais(all)
     setLoading(false)
   }
 
