@@ -220,12 +220,11 @@ export default function Animais() {
                 {filtered.map(animal => (
                   <tr
                     key={animal.id}
-                    className={`hover:bg-gray-50/50 transition-colors ${animal.status === 'VENDIDO' ? 'opacity-60' : ''}`}
+                    onClick={() => setPerfilId(animal.id)}
+                    className={`hover:bg-orange-50/30 transition-colors cursor-pointer ${animal.status === 'VENDIDO' ? 'opacity-60' : ''}`}
                   >
                     <td className="px-4 py-3 font-mono font-semibold text-gray-900">
-                      <button onClick={() => setPerfilId(animal.id)} className="hover:text-orange-500 transition-colors">
-                        {animal.brinco}
-                      </button>
+                      {animal.brinco}
                     </td>
                     <td className="px-4 py-3 text-gray-700">{animal.raca}</td>
                     <td className="px-4 py-3">
