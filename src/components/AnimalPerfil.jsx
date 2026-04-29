@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { X, Edit2, Home, Syringe, DollarSign, Trash2, Plus, ChevronDown, ChevronUp, ImagePlus } from 'lucide-react'
+import { X, Edit2, Home, Syringe, DollarSign, Trash2, Plus, Camera, Upload, Loader, ChevronDown, ChevronUp } from 'lucide-react'
 import AnimalModal from './AnimalModal'
 import ConfinamentoModal from './ConfinamentoModal'
 import ReproducaoModal from './ReproducaoModal'
 import VendaModal from './VendaModal'
 
 function InfoRow({ label, value }) {
+  if (!value) return null
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-gray-400 font-medium">{label}</span>
-      <span className="text-sm font-semibold text-gray-900">{value || '—'}</span>
+      <span className="text-sm font-semibold text-gray-900">{value}</span>
     </div>
   )
 }
@@ -24,14 +25,14 @@ function HistSection({ title, count, children, defaultOpen = true }) {
         className="w-full flex items-center justify-between py-2 border-b border-gray-100"
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">{title}</span>
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{title}</span>
           {count > 0 && (
             <span className="text-xs bg-orange-100 text-orange-600 font-bold px-1.5 py-0.5 rounded-full leading-none">{count}</span>
           )}
         </div>
-        {open ? <ChevronUp size={13} className="text-gray-300" /> : <ChevronDown size={13} className="text-gray-300" />}
+        {open ? <ChevronUp size={12} className="text-gray-300" /> : <ChevronDown size={12} className="text-gray-300" />}
       </button>
-      {open && <div className="pt-3">{children}</div>}
+      {open && <div className="pt-3 space-y-2">{children}</div>}
     </div>
   )
 }
@@ -41,10 +42,14 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
   const [confinamentos, setConfinamentos] = useState([])
   const [reproducoes, setReproducoes] = useState([])
   const [loading, setLoading] = useState(true)
+  const [fotoUrl, setFotoUrl] = useState(null)
+  const [uploadingFoto, setUploadingFoto] = useState(false)
+  const [fotoError, setFotoError] = useState('')
   const [modalEdit, setModalEdit] = useState(false)
   const [modalConf, setModalConf] = useState(false)
   const [modalRep, setModalRep] = useState(false)
   const [modalVenda, setModalVenda] = useState(false)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (isOpen && animalId) fetchAll()
@@ -64,6 +69,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
 
   async function fetchAll() {
     setLoading(true)
+    setFotoUrl(null)
     const [{ data: a }, { data: conf }, { data: rep }] = await Promise.all([
       supabase.from('animais').select('*').eq('id', animalId).single(),
       supabase.from('confinamento_historico').select('*').eq('animal_id', animalId).order('data_confinamento', { ascending: false }),
@@ -72,20 +78,59 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
     setAnimal(a)
     setConfinamentos(conf || [])
     setReproducoes(rep || [])
+    if (a) await loadFoto(a.brinco)
     setLoading(false)
+  }
+
+  async function loadFoto(brinco) {
+    for (const ext of ['jpg', 'jpeg', 'png', 'webp']) {
+      const { data } = await supabase.storage.from('animais-fotos').createSignedUrl(`${brinco}.${ext}`, 3600)
+      if (data?.signedUrl) { setFotoUrl(data.signedUrl); return }
+    }
+    setFotoUrl(null)
+  }
+
+  async function handleFotoUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFotoError('')
+    setUploadingFoto(true)
+    try {
+      if (file.size > 5 * 1024 * 1024) throw new Error('Foto muito grande. Máximo 5MB.')
+      if (!file.type.startsWith('image/')) throw new Error('Arquivo inválido. Envie uma imagem.')
+      const ext = file.name.split('.').pop().toLowerCase()
+      await supabase.storage.from('animais-fotos').remove(
+        ['jpg','jpeg','png','webp'].map(e => `${animal.brinco}.${e}`)
+      )
+      const { error } = await supabase.storage.from('animais-fotos').upload(`${animal.brinco}.${ext}`, file, { upsert: true })
+      if (error) throw error
+      await loadFoto(animal.brinco)
+    } catch (err) {
+      setFotoError(err.message)
+    } finally {
+      setUploadingFoto(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleRemoverFoto() {
+    if (!confirm('Remover a foto deste animal?')) return
+    await supabase.storage.from('animais-fotos').remove(
+      ['jpg','jpeg','png','webp'].map(e => `${animal.brinco}.${e}`)
+    )
+    setFotoUrl(null)
   }
 
   async function handleDelete() {
     if (!confirm(`Excluir animal ${animal?.brinco}? Esta ação não pode ser desfeita.`)) return
     await supabase.from('animais').delete().eq('id', animalId)
-    onSaved?.()
-    onClose()
+    onSaved?.(); onClose()
   }
 
   function handleSaved() { fetchAll(); onSaved?.() }
 
-  const fd = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—'
-  const fm = (v) => v ? `R$ ${parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'
+  const fd = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : null
+  const fm = (v) => v ? `R$ ${parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null
   const idade = () => {
     if (!animal?.nascimento) return null
     const m = Math.floor((new Date() - new Date(animal.nascimento)) / (1000 * 60 * 60 * 24 * 30.5))
@@ -96,14 +141,13 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal centralizado */}
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      {/* Modal — grande, 3 zonas */}
+      <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: '88vh' }}>
 
         {loading || !animal ? (
-          <div className="flex items-center justify-center h-64">
+          <div className="flex-1 flex items-center justify-center">
             <div className="w-7 h-7 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
@@ -114,166 +158,218 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
                 <span className="font-mono text-xl font-bold text-gray-900">#{animal.brinco}</span>
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                   animal.status === 'ATIVO' ? 'bg-orange-50 text-orange-500' : 'bg-gray-100 text-gray-400'
-                }`}>
-                  {animal.status}
-                </span>
-                <span className="text-sm text-gray-400">{animal.raca} · {animal.categoria} · {animal.sexo}</span>
+                }`}>{animal.status}</span>
+                <span className="text-sm text-gray-400 hidden sm:inline">{animal.raca} · {animal.categoria} · {animal.sexo}</span>
               </div>
               <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
                 <X size={18} />
               </button>
             </div>
 
-            {/* Body — duas colunas */}
+            {/* Body — lado a lado */}
             <div className="flex flex-1 overflow-hidden">
 
-              {/* COLUNA ESQUERDA — informações + foto */}
-              <div className="w-72 flex-shrink-0 border-r border-gray-100 flex flex-col overflow-y-auto">
+              {/* ═══════════════════════════════
+                  ESQUERDA — Informações + Ações
+              ═══════════════════════════════ */}
+              <div className="w-1/2 border-r border-gray-100 overflow-y-auto flex flex-col">
+                <div className="px-6 py-5 space-y-5 flex-1">
 
-                {/* Foto placeholder */}
-                <div className="m-4 h-40 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 flex-shrink-0">
-                  <ImagePlus size={20} className="text-gray-300" />
-                  <span className="text-xs text-gray-400">Foto em breve</span>
-                </div>
-
-                {/* Dados */}
-                <div className="px-5 pb-5 space-y-3 flex-1">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Informações</p>
-                  <div className="space-y-3">
-                    <InfoRow label="Brinco" value={animal.brinco} />
-                    <InfoRow label="Raça" value={animal.raca} />
-                    <InfoRow label="Categoria" value={animal.categoria} />
-                    <InfoRow label="Sexo" value={animal.sexo} />
-                    <InfoRow label="Local" value={animal.local} />
-                    <InfoRow label="Nascimento" value={fd(animal.nascimento)} />
-                    <InfoRow label="Idade" value={idade()} />
-                    <InfoRow label="Peso" value={animal.peso ? `${animal.peso} kg` : null} />
-                    <InfoRow label="Data do Peso" value={fd(animal.data_peso)} />
-                    {animal.observacao && <InfoRow label="Observação" value={animal.observacao} />}
+                  {/* Dados principais */}
+                  <div>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Informações</p>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                      <InfoRow label="Brinco" value={animal.brinco} />
+                      <InfoRow label="Sexo" value={animal.sexo} />
+                      <InfoRow label="Raça" value={animal.raca} />
+                      <InfoRow label="Categoria" value={animal.categoria} />
+                      <InfoRow label="Local" value={animal.local} />
+                      <InfoRow label="Status" value={animal.status} />
+                      <InfoRow label="Nascimento" value={fd(animal.nascimento)} />
+                      <InfoRow label="Idade" value={idade()} />
+                      <InfoRow label="Peso" value={animal.peso ? `${animal.peso} kg` : null} />
+                      <InfoRow label="Data do Peso" value={fd(animal.data_peso)} />
+                      {animal.observacao && (
+                        <div className="col-span-2">
+                          <InfoRow label="Observação" value={animal.observacao} />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Dados de venda */}
                   {animal.status === 'VENDIDO' && (
-                    <div className="pt-3 border-t border-gray-100 space-y-3">
-                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Venda</p>
-                      <InfoRow label="Data de Saída" value={fd(animal.saida)} />
-                      <InfoRow label="Valor" value={fm(animal.preco_venda)} />
-                      <InfoRow label="Motivo" value={animal.motivo_saida} />
-                      {animal.preco_venda && animal.peso && (
-                        <InfoRow label="R$/kg" value={`R$ ${(animal.preco_venda / animal.peso).toFixed(2)}`} />
-                      )}
+                    <div className="pt-4 border-t border-gray-100">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Venda</p>
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                        <InfoRow label="Data de Saída" value={fd(animal.saida)} />
+                        <InfoRow label="Valor" value={fm(animal.preco_venda)} />
+                        <InfoRow label="Motivo" value={animal.motivo_saida} />
+                        {animal.preco_venda && animal.peso && (
+                          <InfoRow label="R$/kg" value={`R$ ${(animal.preco_venda / animal.peso).toFixed(2)}`} />
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Ações */}
-                  <div className="pt-3 border-t border-gray-100 space-y-2">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Ações</p>
-                    <button onClick={() => setModalEdit(true)} className="btn-secondary w-full justify-center py-2 text-xs">
-                      <Edit2 size={13} /> Editar Animal
-                    </button>
-                    <button onClick={() => setModalConf(true)} className="btn-secondary w-full justify-center py-2 text-xs">
-                      <Home size={13} /> Confinamento
-                    </button>
-                    {animal.sexo === 'FÊMEA' && (
-                      <button onClick={() => setModalRep(true)} className="btn-secondary w-full justify-center py-2 text-xs">
-                        <Syringe size={13} /> Reprodução
+                  <div className="pt-4 border-t border-gray-100">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Ações</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button onClick={() => setModalEdit(true)} className="btn-secondary justify-center py-2 text-xs">
+                        <Edit2 size={13} /> Editar
                       </button>
-                    )}
-                    {animal.status === 'ATIVO' && (
-                      <button onClick={() => setModalVenda(true)} className="btn-primary w-full justify-center py-2 text-xs">
-                        <DollarSign size={13} /> Registrar Venda
+                      <button onClick={() => setModalConf(true)} className="btn-secondary justify-center py-2 text-xs">
+                        <Home size={13} /> Confinamento
                       </button>
-                    )}
-                    <button onClick={handleDelete} className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors">
+                      {animal.sexo === 'FÊMEA' && (
+                        <button onClick={() => setModalRep(true)} className="btn-secondary justify-center py-2 text-xs">
+                          <Syringe size={13} /> Reprodução
+                        </button>
+                      )}
+                      {animal.status === 'ATIVO' && (
+                        <button onClick={() => setModalVenda(true)} className="btn-primary justify-center py-2 text-xs">
+                          <DollarSign size={13} /> Venda
+                        </button>
+                      )}
+                    </div>
+                    <button onClick={handleDelete} className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors">
                       <Trash2 size={13} /> Excluir Animal
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* COLUNA DIREITA — histórico */}
-              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Histórico</p>
+              {/* ═══════════════════════════════
+                  DIREITA — dividida em 2
+              ═══════════════════════════════ */}
+              <div className="w-1/2 flex flex-col overflow-hidden">
 
-                {/* Confinamento */}
-                <HistSection title="Confinamento" count={confinamentos.length} defaultOpen={true}>
-                  {confinamentos.length === 0 ? (
-                    <p className="text-sm text-gray-300 text-center py-4">Nenhum registro ainda.</p>
-                  ) : (
-                    <div className="space-y-2 mb-3">
-                      {confinamentos.map((c) => {
+                {/* DIREITA SUPERIOR — Foto */}
+                <div className="h-1/2 border-b border-gray-100 flex flex-col p-4 overflow-hidden">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex-shrink-0">Foto</p>
+                  <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
+
+                  <div className="flex-1 min-h-0">
+                    {fotoUrl ? (
+                      <div className="relative group h-full rounded-xl overflow-hidden">
+                        <img src={fotoUrl} alt={`Animal ${animal.brinco}`} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadingFoto}
+                            className="bg-white text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-1.5"
+                          >
+                            <Camera size={12} /> Trocar
+                          </button>
+                          <button
+                            onClick={handleRemoverFoto}
+                            className="bg-white text-red-500 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                        {uploadingFoto && (
+                          <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                            <Loader size={20} className="text-orange-500 animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingFoto}
+                        className="w-full h-full bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-orange-300 hover:bg-orange-50/20 transition-all flex flex-col items-center justify-center gap-2 group"
+                      >
+                        {uploadingFoto ? (
+                          <>
+                            <Loader size={22} className="text-orange-400 animate-spin" />
+                            <span className="text-xs text-gray-400">Enviando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={22} className="text-gray-300 group-hover:text-orange-400 transition-colors" />
+                            <span className="text-xs font-semibold text-gray-400 group-hover:text-orange-500 transition-colors">Adicionar foto</span>
+                            <span className="text-xs text-gray-300">JPG, PNG até 5MB</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {fotoError && <p className="text-xs text-red-500 mt-2 flex-shrink-0">{fotoError}</p>}
+                </div>
+
+                {/* DIREITA INFERIOR — Histórico */}
+                <div className="h-1/2 overflow-y-auto p-4">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Histórico</p>
+                  <div className="space-y-4">
+
+                    {/* Confinamento */}
+                    <HistSection title="Confinamento" count={confinamentos.length} defaultOpen={true}>
+                      {confinamentos.length === 0 ? (
+                        <p className="text-xs text-gray-300 text-center py-2">Nenhum registro.</p>
+                      ) : confinamentos.map((c) => {
                         const ganho = c.peso && c.peso_inicial ? (c.peso - c.peso_inicial).toFixed(1) : null
                         return (
                           <div key={c.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-xl">
                             <div>
                               <div className="text-xs font-bold text-gray-600 mb-1">Entrada: {fd(c.data_confinamento)}</div>
-                              <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                                {c.peso_inicial && <span>Inicial: <strong>{c.peso_inicial} kg</strong></span>}
-                                {c.peso && <span>Atual: <strong>{c.peso} kg</strong></span>}
-                                {c.data_peso && <span>Data: <strong>{fd(c.data_peso)}</strong></span>}
+                              <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                                {c.peso_inicial && <span>Ini: <strong>{c.peso_inicial}kg</strong></span>}
+                                {c.peso && <span>Atual: <strong>{c.peso}kg</strong></span>}
                               </div>
                               {c.observacao && <p className="text-xs text-gray-400 mt-1">{c.observacao}</p>}
                             </div>
                             {ganho !== null && (
-                              <span className={`text-xs font-bold px-2 py-1 rounded-lg flex-shrink-0 ml-2 ${
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-lg flex-shrink-0 ml-2 ${
                                 parseFloat(ganho) > 0 ? 'bg-orange-50 text-orange-500' : 'bg-gray-100 text-gray-400'
                               }`}>
-                                {parseFloat(ganho) > 0 ? '+' : ''}{ganho} kg
+                                {parseFloat(ganho) > 0 ? '+' : ''}{ganho}kg
                               </span>
                             )}
                           </div>
                         )
                       })}
-                    </div>
-                  )}
-                  <button onClick={() => setModalConf(true)} className="w-full py-2 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-1.5">
-                    <Plus size={12} /> Novo registro
-                  </button>
-                </HistSection>
+                      <button onClick={() => setModalConf(true)} className="w-full mt-1 py-1.5 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-1">
+                        <Plus size={11} /> Novo
+                      </button>
+                    </HistSection>
 
-                {/* Reprodução */}
-                {animal.sexo === 'FÊMEA' && (
-                  <HistSection title="Reprodução" count={reproducoes.length} defaultOpen={true}>
-                    {reproducoes.length === 0 ? (
-                      <p className="text-sm text-gray-300 text-center py-4">Nenhum registro ainda.</p>
-                    ) : (
-                      <div className="space-y-2 mb-3">
-                        {reproducoes.map((r) => (
+                    {/* Reprodução — só fêmeas */}
+                    {animal.sexo === 'FÊMEA' && (
+                      <HistSection title="Reprodução" count={reproducoes.length} defaultOpen={false}>
+                        {reproducoes.length === 0 ? (
+                          <p className="text-xs text-gray-300 text-center py-2">Nenhum registro.</p>
+                        ) : reproducoes.map((r) => (
                           <div key={r.id} className="p-3 bg-gray-50 rounded-xl">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-xs font-bold text-gray-600">
-                                Inseminação: {fd(r.data_inseminacao)}
-                              </span>
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-bold text-gray-600">{fd(r.data_inseminacao)}</span>
+                              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
                                 r.resultado === 'POSITIVO' ? 'bg-orange-50 text-orange-500' :
                                 r.resultado === 'NEGATIVO' ? 'bg-gray-100 text-gray-500' :
                                 'bg-gray-100 text-gray-400'
-                              }`}>
-                                {r.resultado}
-                              </span>
+                              }`}>{r.resultado}</span>
                             </div>
-                            <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                              {r.data_protocolo && <span>Protocolo: <strong>{fd(r.data_protocolo)}</strong></span>}
+                            <div className="flex gap-3 text-xs text-gray-500">
                               {r.touro && <span>Touro: <strong>{r.touro}</strong></span>}
-                              {r.peso && <span>Peso: <strong>{r.peso} kg</strong></span>}
+                              {r.peso && <span><strong>{r.peso}kg</strong></span>}
                             </div>
-                            {r.observacao && <p className="text-xs text-gray-400 mt-1">{r.observacao}</p>}
                           </div>
                         ))}
-                      </div>
+                        <button onClick={() => setModalRep(true)} className="w-full mt-1 py-1.5 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-1">
+                          <Plus size={11} /> Nova inseminação
+                        </button>
+                      </HistSection>
                     )}
-                    <button onClick={() => setModalRep(true)} className="w-full py-2 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-orange-300 hover:text-orange-500 transition-colors flex items-center justify-center gap-1.5">
-                      <Plus size={12} /> Nova inseminação
-                    </button>
-                  </HistSection>
-                )}
+                  </div>
+                </div>
               </div>
             </div>
           </>
         )}
       </div>
 
-      {/* Sub-modals */}
       {animal && (
         <>
           <AnimalModal isOpen={modalEdit} onClose={() => setModalEdit(false)} animal={animal} onSaved={handleSaved} />
