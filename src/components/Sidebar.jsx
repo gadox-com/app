@@ -1,14 +1,14 @@
 import {
   LayoutDashboard,
-  PawPrint,
   Home,
   Syringe,
   ShoppingCart,
   BarChart3,
   Menu,
-  X,
-  Beef
+  Beef,
+  LogOut,
 } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -19,7 +19,10 @@ const NAV_ITEMS = [
   { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
 ]
 
-export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle }) {
+export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, user }) {
+  async function handleLogout() {
+    await supabase.auth.signOut()
+  }
   return (
     <>
       {/* Mobile overlay */}
@@ -106,11 +109,31 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle }) {
         </nav>
 
         {/* Footer */}
-        {isOpen && (
-          <div className="p-4 border-t border-gray-100">
-            <div className="text-xs text-gray-400 text-center">v1.0.0 — 2025</div>
-          </div>
-        )}
+        <div className="p-3 border-t border-gray-100">
+          {isOpen ? (
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <div className="text-xs font-medium text-gray-700 truncate">{user?.email?.split('@')[0]}</div>
+                <div className="text-xs text-gray-400 truncate">{user?.email}</div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2"
+                title="Sair"
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="w-full flex justify-center p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+              title="Sair"
+            >
+              <LogOut size={15} />
+            </button>
+          )}
+        </div>
       </aside>
     </>
   )
