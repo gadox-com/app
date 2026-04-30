@@ -64,12 +64,23 @@ export default function Animais() {
     let list = [...animais]
 
     if (search.trim()) {
-      const q = search.toLowerCase().trim()
-      list = list.filter(a =>
-        a.brinco?.toLowerCase().includes(q) ||
-        a.raca?.toLowerCase().includes(q) ||
-        a.categoria?.toLowerCase().includes(q)
-      )
+      const q = search.trim()
+      const isNumeric = /^\d+$/.test(q)
+      list = list.filter(a => {
+        if (isNumeric) {
+          // Brinco: comparação exata (normaliza zeros à esquerda)
+          const brincoNorm = String(parseInt(a.brinco || '0', 10))
+          const qNorm = String(parseInt(q, 10))
+          return brincoNorm === qNorm
+        }
+        // Texto: busca parcial em raça e categoria
+        const ql = q.toLowerCase()
+        return (
+          a.brinco?.toLowerCase().includes(ql) ||
+          a.raca?.toLowerCase().includes(ql) ||
+          a.categoria?.toLowerCase().includes(ql)
+        )
+      })
     }
     if (filters.status !== 'Todos') list = list.filter(a => a.status === filters.status)
     if (filters.local !== 'Todos') list = list.filter(a => a.local === filters.local)
