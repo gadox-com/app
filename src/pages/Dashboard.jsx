@@ -155,6 +155,29 @@ export default function Dashboard({ onNavigate }) {
           <div className="text-xs text-gray-400 mt-0.5">saídas registradas</div>
         </div>
 
+        {/* Clima — Pinhal de São Bento */}
+        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
+          <div className="flex items-start justify-between mb-1">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest leading-tight">Pinhal de S. Bento</p>
+              <p className="text-xs text-gray-300">Paraná · Brasil</p>
+            </div>
+            <span className="text-2xl leading-none">{clima ? clima.icon : '🌡️'}</span>
+          </div>
+          {!clima ? (
+            <div className="text-sm text-gray-300 mt-3">Carregando...</div>
+          ) : clima.temp !== null ? (
+            <>
+              <div className="text-4xl font-bold text-gray-900 leading-none mt-2">{clima.temp}°<span className="text-2xl">C</span></div>
+              <div className="text-sm text-gray-500 mt-1">{clima.desc}</div>
+              {clima.wind !== null && <div className="text-xs text-gray-400 mt-0.5">Vento {clima.wind} km/h</div>}
+            </>
+          ) : (
+            <div className="text-sm text-gray-400 mt-2">Indisponível</div>
+          )}
+          <p className="text-xs text-gray-300 mt-2 capitalize">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' })}</p>
+        </div>
+
       </div>
 
       {/* Sexo + Confinados + Categorias */}
