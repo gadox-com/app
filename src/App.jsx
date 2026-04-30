@@ -58,7 +58,8 @@ export default function App() {
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         user={session.user}
       />
-      <main className="flex-1 overflow-auto">
+      {/* pb-16 on mobile to account for bottom nav height */}
+      <main className="flex-1 overflow-auto pb-16 lg:pb-0 min-w-0">
         <PageComponent onNavigate={setCurrentPage} />
       </main>
     </div>
