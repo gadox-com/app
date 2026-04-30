@@ -334,18 +334,17 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
             <>
               {/* HEADER */}
               <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-100 flex-shrink-0 bg-white">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2">
                   <span className="font-mono text-lg font-bold text-gray-900">#{animal.brinco}</span>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${animal.status === 'ATIVO' ? 'bg-green-50 text-green-500 border-green-100' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${animal.status === 'ATIVO' ? 'bg-green-50 text-green-500 border-green-100' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
                     {animal.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
                   </span>
                   {animal.status === 'ATIVO' && (
                     <button onClick={toggleConfinado} disabled={togglingConfinado}
-                      className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border-2 transition-all ${animal.confinado ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-300 hover:border-gray-600'}`}>
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${animal.confinado ? 'bg-gray-900 text-white border-gray-900' : 'bg-orange-50 text-orange-500 border-orange-200 hover:bg-orange-100'}`}>
                       <Home size={11} />{animal.confinado ? 'Confinado' : 'Solto'}
                     </button>
                   )}
-                  <span className="text-sm text-gray-400 hidden sm:inline">{animal.raca} · {animal.categoria} · {animal.sexo}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   {animal.sexo === 'FÊMEA' && (
@@ -425,10 +424,10 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
                         <button
                           onClick={salvarObservacao}
                           disabled={savingObs || !obsTexto.trim()}
-                          className="flex-shrink-0 text-gray-400 hover:text-orange-500 disabled:opacity-30 transition-colors"
+                          className={`flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full transition-all ${obsTexto.trim() ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm shadow-orange-200' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
                           title="Salvar observação (Enter)"
                         >
-                          {savingObs ? <Loader size={14} className="animate-spin" /> : <Check size={14} strokeWidth={2.5} />}
+                          {savingObs ? <Loader size={11} className="animate-spin" /> : <Check size={11} strokeWidth={3} />}
                         </button>
                       </div>
                       {/* Histórico observações */}
@@ -471,10 +470,10 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
                           <button
                             onClick={salvarPeso}
                             disabled={savingPeso || !pesoVal}
-                            className="flex-shrink-0 text-gray-400 hover:text-orange-500 disabled:opacity-30 transition-colors"
+                            className={`flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full transition-all ${pesoVal ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm shadow-orange-200' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
                             title="Salvar peso (Enter)"
                           >
-                            {savingPeso ? <Loader size={14} className="animate-spin" /> : <Check size={14} strokeWidth={2.5} />}
+                            {savingPeso ? <Loader size={11} className="animate-spin" /> : <Check size={11} strokeWidth={3} />}
                           </button>
                         </div>
                         <div className="flex items-center gap-2 px-3">
