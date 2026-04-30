@@ -441,50 +441,37 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
                   {/* Q1 — Informações (sem scroll) */}
                   <div className="h-1/2 border-b border-gray-100 px-5 py-4 flex flex-col">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex-shrink-0">Informações</p>
-                    <div className="grid grid-cols-2 gap-x-5 gap-y-2.5 flex-1">
-                      <EditField label="Brinco" value={animal.brinco} onSave={v => saveField('brinco', v)} />
-                      <EditField label="Sexo" value={animal.sexo} options={['MACHO','FÊMEA']} onSave={v => saveField('sexo', v)} />
-                      <EditField label="Raça" value={animal.raca} onSave={v => saveField('raca', v)} />
-                      <EditField label="Categoria" value={animal.categoria} options={['BEZERRO','BEZERRA','NOVILHO','NOVILHA','VACA','TOURO','BOI']} onSave={v => saveField('categoria', v)} />
-                      <EditField label="Local" value={animal.local} options={['SARANDI','CASA','CAPANEMA']} onSave={v => saveField('local', v)} />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Confinado</span>
-                        <span className="text-sm font-medium text-gray-900">{animal.confinado ? 'Sim' : 'Não'}</span>
-                      </div>
-                      <EditField label="Nascimento" value={animal.nascimento} type="date" onSave={v => saveField('nascimento', v)} />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Idade</span>
-                        <span className="text-sm font-medium text-gray-900">{idade() || '—'}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Último Peso</span>
-                        <span className="text-sm font-medium text-gray-900">{animal.peso ? `${animal.peso} kg` : '—'}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Data Peso</span>
-                        <span className="text-sm font-medium text-gray-900">{fd(animal.data_peso)}</span>
-                      </div>
-                      {animal.status === 'VENDIDO' && <>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Saída</span>
-                          <span className="text-sm font-medium text-gray-900">{fd(animal.saida)}</span>
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Motivo</span>
-                          <span className="text-sm font-medium text-gray-900">{animal.motivo_saida || '—'}</span>
-                        </div>
-                        {animal.preco_venda && <>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Valor</span>
-                            <span className="text-sm font-medium text-gray-900">{fm(animal.preco_venda)}</span>
+                    <div className="flex-1 overflow-hidden">
+                      <div className="grid grid-cols-2 divide-x divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                        {[
+                          { label: 'Brinco', el: <EditField label="Brinco" value={animal.brinco} onSave={v => saveField('brinco', v)} /> },
+                          { label: 'Sexo', el: <EditField label="Sexo" value={animal.sexo} options={['MACHO','FÊMEA']} onSave={v => saveField('sexo', v)} /> },
+                          { label: 'Raça', el: <EditField label="Raça" value={animal.raca} onSave={v => saveField('raca', v)} /> },
+                          { label: 'Categoria', el: <EditField label="Categoria" value={animal.categoria} options={['BEZERRO','BEZERRA','NOVILHO','NOVILHA','VACA','TOURO','BOI']} onSave={v => saveField('categoria', v)} /> },
+                          { label: 'Local', el: <EditField label="Local" value={animal.local} options={['SARANDI','CASA','CAPANEMA']} onSave={v => saveField('local', v)} /> },
+                          { label: 'Confinado', el: <div className="flex flex-col gap-0.5"><span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Confinado</span><span className="text-sm font-medium text-gray-900">{animal.confinado ? 'Sim' : 'Não'}</span></div> },
+                          { label: 'Nascimento', el: <EditField label="Nascimento" value={animal.nascimento} type="date" onSave={v => saveField('nascimento', v)} /> },
+                          { label: 'Idade', el: <div className="flex flex-col gap-0.5"><span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Idade</span><span className="text-sm font-medium text-gray-900">{idade() || '—'}</span></div> },
+                          { label: 'Peso', el: <div className="flex flex-col gap-0.5"><span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Último Peso</span><span className="text-sm font-medium text-gray-900">{animal.peso ? `${animal.peso} kg` : '—'}</span></div> },
+                          { label: 'DataPeso', el: <div className="flex flex-col gap-0.5"><span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Data Peso</span><span className="text-sm font-medium text-gray-900">{fd(animal.data_peso)}</span></div> },
+                          ...(animal.status === 'VENDIDO' ? [
+                            { label: 'Saida', el: <div className="flex flex-col gap-0.5"><span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Saída</span><span className="text-sm font-medium text-gray-900">{fd(animal.saida)}</span></div> },
+                            { label: 'Motivo', el: <div className="flex flex-col gap-0.5"><span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Motivo</span><span className="text-sm font-medium text-gray-900">{animal.motivo_saida || '—'}</span></div> },
+                            ...(animal.preco_venda ? [
+                              { label: 'Valor', el: <div className="flex flex-col gap-0.5"><span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Valor</span><span className="text-sm font-medium text-gray-900">{fm(animal.preco_venda)}</span></div> },
+                              { label: 'Rkg', el: <div className="flex flex-col gap-0.5"><span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">R$/kg</span><span className="text-sm font-medium text-gray-900">{animal.peso ? `R$ ${(animal.preco_venda/animal.peso).toFixed(2)}` : '—'}</span></div> },
+                            ] : []),
+                          ] : []),
+                        ].map(({ label, el }) => (
+                          <div key={label} className="px-3 py-2 bg-white hover:bg-gray-50/50 transition-colors">
+                            {el}
                           </div>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">R$/kg</span>
-                            <span className="text-sm font-medium text-gray-900">{animal.peso ? `R$ ${(animal.preco_venda/animal.peso).toFixed(2)}` : '—'}</span>
-                          </div>
-                        </>}
-                      </>}
-                      <EditField label="Observação" value={animal.observacao} onSave={v => saveField('observacao', v)} fullWidth />
+                        ))}
+                      </div>
+                      {/* Observação fora do grid */}
+                      <div className="mt-2 px-3 py-2 border border-gray-100 rounded-xl bg-white hover:bg-gray-50/50 transition-colors">
+                        <EditField label="Observação" value={animal.observacao} onSave={v => saveField('observacao', v)} fullWidth />
+                      </div>
                     </div>
                   </div>
 
@@ -587,6 +574,15 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
                     </div>
                   </div>
                 </div>
+              </div>
+              {/* ── FOOTER ──────────────────────────────────────────────── */}
+              <div className="flex justify-end px-5 py-2.5 border-t border-gray-100 flex-shrink-0 bg-gray-50/50">
+                <button
+                  onClick={onClose}
+                  className="px-5 py-1.5 bg-gray-900 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                >
+                  OK
+                </button>
               </div>
             </>
           )}
