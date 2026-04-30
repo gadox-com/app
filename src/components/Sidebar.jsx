@@ -11,6 +11,7 @@ import {
 import { supabase } from '../lib/supabase'
 
 import { LOGO_BASE64 } from '../assets/logo.js'
+import { FAVICON_BASE64 } from '../assets/favicon.js'
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'animais', label: 'Animais', icon: Beef },
@@ -52,6 +53,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
                 src={LOGO_BASE64}
                 alt="Fazenda São Brás"
                 className="w-full max-w-[148px] h-auto object-contain"
+                style={{ filter: 'brightness(0) saturate(100%) invert(15%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(85%)' }}
               />
               <button
                 onClick={onToggle}
@@ -61,10 +63,15 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
               </button>
             </div>
           ) : (
-            <div className="flex items-center justify-center py-4">
+            <div className="flex flex-col items-center justify-center py-3 gap-2">
               <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
                 <Menu size={15} />
               </button>
+              <img
+                src={FAVICON_BASE64}
+                alt="São Brás"
+                className="w-8 h-8 object-contain"
+              />
             </div>
           )}
         </div>
