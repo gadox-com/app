@@ -54,7 +54,7 @@ export default function Login({ onLogin }) {
               src={LOGO_BASE64}
               alt="Fazenda São Brás"
               className="w-full h-auto object-contain"
-              style={{ maxHeight: '90px' }}
+              style={{ maxHeight: '180px' }}
             />
             <div className="w-10 h-px bg-gray-200 mt-5 mb-0" />
           </div>
