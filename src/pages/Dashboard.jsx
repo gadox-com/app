@@ -32,6 +32,24 @@ export default function Dashboard({ onNavigate }) {
     })
   }, [])
 
+  const [clima, setClima] = useState(null)
+  useEffect(() => {
+    // Pinhal de São Bento - PR: lat -26.08, lon -53.79
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=-26.08&longitude=-53.79&current=temperature_2m,weathercode,wind_speed_10m&timezone=America/Sao_Paulo')
+      .then(r => r.json())
+      .then(d => {
+        const code = d.current?.weathercode
+        const icons = { 0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️', 45:'🌫️', 48:'🌫️', 51:'🌦️', 53:'🌦️', 55:'🌧️', 61:'🌧️', 63:'🌧️', 65:'🌧️', 71:'🌨️', 73:'🌨️', 75:'🌨️', 80:'🌦️', 81:'🌧️', 82:'⛈️', 95:'⛈️', 96:'⛈️', 99:'⛈️' }
+        const desc = { 0:'Céu aberto', 1:'Poucas nuvens', 2:'Nublado', 3:'Encoberto', 45:'Névoa', 48:'Névoa', 51:'Garoa leve', 53:'Garoa', 55:'Garoa forte', 61:'Chuva leve', 63:'Chuva', 65:'Chuva forte', 80:'Chuva leve', 81:'Chuva', 82:'Chuva forte', 95:'Trovoada', 96:'Trovoada', 99:'Trovoada' }
+        setClima({
+          temp: Math.round(d.current?.temperature_2m),
+          wind: Math.round(d.current?.wind_speed_10m),
+          icon: icons[code] || '🌡️',
+          desc: desc[code] || 'Variável',
+        })
+      }).catch(() => setClima({ temp: null, icon: '🌡️', desc: 'Indisponível', wind: null }))
+  }, [])
+
   async function fetchData() {
     setLoading(true)
     try {

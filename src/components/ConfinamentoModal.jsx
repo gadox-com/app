@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Modal from './Modal'
 import { supabase } from '../lib/supabase'
-import { Save, Plus, Home, AlertCircle } from 'lucide-react'
+import { X, Save, Plus, Home, AlertCircle } from 'lucide-react'
 
 export default function ConfinamentoModal({ isOpen, onClose, animal }) {
   const [form, setForm] = useState({
@@ -147,11 +147,20 @@ export default function ConfinamentoModal({ isOpen, onClose, animal }) {
                       </div>
                       {h.observacao && <p className="text-xs text-gray-400 mt-1">{h.observacao}</p>}
                     </div>
-                    {ganho !== null && (
-                      <div className={`text-sm font-bold px-2.5 py-1 rounded-lg ${parseFloat(ganho) >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
-                        {parseFloat(ganho) >= 0 ? '+' : ''}{ganho} kg
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                      {ganho !== null && (
+                        <div className={`text-sm font-bold px-2.5 py-1 rounded-lg ${parseFloat(ganho) >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                          {parseFloat(ganho) >= 0 ? '+' : ''}{ganho} kg
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleDelete(h.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-400"
+                        title="Remover registro"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
                   </div>
                 )
               })}
