@@ -19,9 +19,11 @@ export default function Dashboard({ onNavigate }) {
   const [error, setError] = useState(null)
   const [perfilId, setPerfilId] = useState(null)
 
+  const [userName, setUserName] = useState('')
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
-  const [userName, setUserName] = useState('')
+
+  useEffect(() => { fetchData() }, [])
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const email = data?.user?.email || ''
@@ -29,8 +31,6 @@ export default function Dashboard({ onNavigate }) {
       setUserName(name.charAt(0).toUpperCase() + name.slice(1))
     })
   }, [])
-
-  useEffect(() => { fetchData() }, [])
 
   async function fetchData() {
     setLoading(true)
@@ -137,18 +137,6 @@ export default function Dashboard({ onNavigate }) {
           <div className="text-xs text-gray-400 mt-0.5">saídas registradas</div>
         </div>
 
-        {/* Total vendas */}
-        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
-          <DollarSign size={16} className="text-orange-400 mb-3" />
-          <div className="text-2xl font-bold text-gray-900 leading-none">
-            {totalVendas > 0
-              ? `R$\u00a0${totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`
-              : '—'
-            }
-          </div>
-          <div className="text-sm font-semibold text-gray-700 mt-1">Total em Vendas</div>
-          <div className="text-xs text-gray-400 mt-0.5">receita acumulada</div>
-        </div>
       </div>
 
       {/* Sexo + Confinados + Categorias */}
