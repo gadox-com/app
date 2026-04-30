@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package, DollarSign } from 'lucide-react'
+import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
 import AnimalPerfil from '../components/AnimalPerfil'
@@ -21,6 +21,14 @@ export default function Dashboard({ onNavigate }) {
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
+  const [userName, setUserName] = useState('')
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const email = data?.user?.email || ''
+      const name = email.split('@')[0].split('.')[0]
+      setUserName(name.charAt(0).toUpperCase() + name.slice(1))
+    })
+  }, [])
 
   useEffect(() => { fetchData() }, [])
 
@@ -63,6 +71,8 @@ export default function Dashboard({ onNavigate }) {
   const vacas = ativos.filter(a => a.categoria === 'VACA')
   const touros = ativos.filter(a => a.categoria === 'TOURO')
   const bois = ativos.filter(a => a.categoria === 'BOI')
+  const confinados = ativos.filter(a => a.confinado)
+  const soltos = ativos.filter(a => !a.confinado)
   const totalVendas = vendidos.reduce((s, a) => s + (a.preco_venda || 0), 0)
   const pctMachos = ativos.length ? Math.round((machos.length / ativos.length) * 100) : 0
   const pctFemeas = ativos.length ? Math.round((femeas.length / ativos.length) * 100) : 0
@@ -87,7 +97,7 @@ export default function Dashboard({ onNavigate }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-400">{greeting}</p>
+          <p className="text-sm text-gray-400">{greeting}{userName ? `, ${userName}` : ''}</p>
           <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Fazenda São Brás</h1>
         </div>
         <button
@@ -141,8 +151,8 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      {/* Sexo + Categorias */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      {/* Sexo + Confinados + Categorias */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
 
         {/* Sexo */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -164,6 +174,31 @@ export default function Dashboard({ onNavigate }) {
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-gray-300 rounded-full transition-all" style={{ width: `${pctFemeas}%` }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Confinados / Soltos */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-5">Confinamento</p>
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm font-medium text-gray-700">Confinados</span>
+                <span className="text-sm font-bold text-gray-900">{confinados.length} <span className="text-xs font-normal text-gray-400">({ativos.length ? ((confinados.length/ativos.length)*100).toFixed(0) : 0}%)</span></span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all" style={{ width: ativos.length ? `${(confinados.length/ativos.length)*100}%` : '0%' }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm font-medium text-gray-700">Soltos</span>
+                <span className="text-sm font-bold text-gray-900">{soltos.length} <span className="text-xs font-normal text-gray-400">({ativos.length ? ((soltos.length/ativos.length)*100).toFixed(0) : 0}%)</span></span>
+              </div>
+              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-gray-300 rounded-full transition-all" style={{ width: ativos.length ? `${(soltos.length/ativos.length)*100}%` : '0%' }} />
               </div>
             </div>
           </div>

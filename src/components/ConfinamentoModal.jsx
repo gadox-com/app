@@ -23,6 +23,12 @@ export default function ConfinamentoModal({ isOpen, onClose, animal }) {
     }
   }, [isOpen, animal])
 
+  async function handleDelete(id) {
+    if (!confirm('Remover este registro de confinamento?')) return
+    const { error } = await supabase.from('confinamento_historico').delete().eq('id', id)
+    if (!error) fetchHistorico()
+  }
+
   async function fetchHistorico() {
     setLoadingHist(true)
     const { data, error } = await supabase
@@ -128,7 +134,7 @@ export default function ConfinamentoModal({ isOpen, onClose, animal }) {
               {historico.map((h) => {
                 const ganho = h.peso && h.peso_inicial ? (h.peso - h.peso_inicial).toFixed(1) : null
                 return (
-                  <div key={h.id} className="bg-gray-50 rounded-xl p-4 flex items-start justify-between">
+                  <div key={h.id} className="bg-gray-50 rounded-xl p-4 flex items-start justify-between group">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-semibold text-gray-500">Entrada:</span>

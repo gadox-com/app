@@ -5,6 +5,20 @@ import {
   Loader, ChevronDown, ChevronUp, Check, Pencil,
   MessageSquare, Scale, Upload
 } from 'lucide-react'
+
+// Ícone de cerca customizado
+const FenceIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 3 L4 21"/>
+    <path d="M12 3 L12 21"/>
+    <path d="M20 3 L20 21"/>
+    <path d="M2 9 L22 9"/>
+    <path d="M2 15 L22 15"/>
+    <path d="M4 3 L6 6 L8 3"/>
+    <path d="M12 3 L14 6 L16 3"/>
+    <path d="M20 3 L22 6"/>
+  </svg>
+)
 import AnimalModal from './AnimalModal'
 import ConfinamentoModal from './ConfinamentoModal'
 import ReproducaoModal from './ReproducaoModal'
@@ -302,8 +316,8 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
                   </span>
                   {animal.status === 'ATIVO' && (
                     <button onClick={toggleConfinado} disabled={togglingConfinado}
-                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${animal.confinado ? 'bg-gray-900 text-white border-gray-900' : 'bg-orange-50 text-orange-500 border-orange-200 hover:bg-orange-100'}`}>
-                      <Home size={11} />{animal.confinado ? 'Confinado' : 'Solto'}
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${animal.confinado ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 text-blue-500 border-blue-200 hover:bg-blue-100'}`}>
+                      <FenceIcon />{animal.confinado ? 'Confinado' : 'Solto'}
                     </button>
                   )}
                 </div>
@@ -455,15 +469,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
                         >
                           {savingPeso ? <Loader size={11} className="animate-spin" /> : <Check size={11} strokeWidth={3} />}
                         </button>
-                      </div>
-                      <div className="flex items-center gap-2 px-2.5">
-                        <MessageSquare size={11} className="text-gray-300 flex-shrink-0" />
-                        <input
-                          className="flex-1 text-xs bg-transparent outline-none text-gray-500 placeholder-gray-300"
-                          placeholder="Obs. da pesagem (ex: mangueira, vacinação...)"
-                          value={pesoObs}
-                          onChange={e => setPesoObs(e.target.value)}
-                        />
                       </div>
                       {pesoError && <p className="text-xs text-red-500 px-2.5">{pesoError}</p>}
                     </div>
