@@ -5,22 +5,27 @@ import { FAZENDA_BG } from '../assets/fazenda_bg.js'
 import { Eye, EyeOff, LogIn } from 'lucide-react'
 
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState('')
+  const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const email = usuario.trim().toLowerCase().includes('@')
+    ? usuario.trim().toLowerCase()
+    : `${usuario.trim().toLowerCase()}@saobras.com`
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    if (!usuario.trim()) return setError('Informe o usuário')
     setLoading(true)
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
       onLogin()
     } catch (err) {
-      setError('Email ou senha incorretos.')
+      setError('Usuário ou senha incorretos.')
     } finally {
       setLoading(false)
     }
@@ -70,16 +75,23 @@ export default function Login({ onLogin }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label">Email</label>
-              <input
-                type="email"
-                className="input-field"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                autoFocus
-              />
+              <label className="label">Usuário</label>
+              <div className="flex items-center input-field p-0 overflow-hidden focus-within:ring-2 focus-within:ring-orange-500 focus-within:border-transparent">
+                <input
+                  type="text"
+                  className="flex-1 px-3 py-2 outline-none bg-transparent text-sm"
+                  placeholder="seu nome"
+                  value={usuario}
+                  onChange={e => setUsuario(e.target.value)}
+                  required
+                  autoFocus
+                  autoComplete="username"
+                  autoCapitalize="none"
+                />
+                <span className="px-3 py-2 text-sm text-gray-400 bg-gray-50 border-l border-gray-200 select-none whitespace-nowrap">
+                  @saobras.com
+                </span>
+              </div>
             </div>
 
             <div>
