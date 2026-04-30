@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { LOGO_BASE64 } from '../assets/logo.js'
 import { Beef, Eye, EyeOff, LogIn } from 'lucide-react'
 
 export default function Login({ onLogin }) {
@@ -42,11 +43,13 @@ export default function Login({ onLogin }) {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-orange-500 rounded-xl mb-4">
-            <Beef size={22} className="text-white" />
-          </div>
-          <h1 className="text-white text-2xl font-bold tracking-wide">FAZENDA SÃO BRÁS</h1>
-          <p className="text-white/50 text-sm mt-1 font-medium tracking-widest uppercase">Controle de Gado</p>
+          <img
+            src={LOGO_BASE64}
+            alt="Fazenda São Brás"
+            className="h-14 w-auto object-contain mx-auto mb-2"
+            style={{ filter: 'brightness(0) invert(1)' }}
+          />
+          <p className="text-white/40 text-xs mt-3 font-medium tracking-widest uppercase">Controle de Gado</p>
         </div>
 
         {/* Form */}

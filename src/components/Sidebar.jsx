@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
+import { LOGO_BASE64 } from '../assets/logo.js'
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'animais', label: 'Animais', icon: Beef },
@@ -44,29 +45,29 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
         `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 min-h-[64px]">
-          {isOpen && (
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Beef size={16} className="text-white" />
-              </div>
-              <div className="min-w-0">
-                <div className="font-bold text-gray-900 text-sm leading-tight truncate">FAZENDA SÃO BRÁS</div>
-                <div className="text-xs text-gray-400 font-medium">Controle de Gado</div>
-              </div>
+        <div className="border-b border-gray-100 min-h-[72px] flex flex-col justify-center">
+          {isOpen ? (
+            <div className="px-4 py-3 flex items-center justify-between">
+              <img
+                src={LOGO_BASE64}
+                alt="Fazenda São Brás"
+                className="h-8 w-auto object-contain"
+                style={{ filter: 'brightness(0) invert(0)' }}
+              />
+              <button
+                onClick={onToggle}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors flex-shrink-0 ml-2"
+              >
+                <Menu size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-3 gap-1.5">
+              <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
+                <Menu size={16} />
+              </button>
             </div>
           )}
-          {!isOpen && (
-            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center mx-auto">
-              <Beef size={16} className="text-white" />
-            </div>
-          )}
-          <button
-            onClick={onToggle}
-            className={`p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0 ${!isOpen ? 'hidden' : ''}`}
-          >
-            <Menu size={18} />
-          </button>
         </div>
 
         {!isOpen && (
