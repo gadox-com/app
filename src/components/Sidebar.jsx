@@ -70,7 +70,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
               <img
                 src={FAVICON_BASE64}
                 alt="São Brás"
-                className="w-20 h-20 object-contain"
+                className="w-16 h-16 object-contain"
               />
             </div>
           )}
