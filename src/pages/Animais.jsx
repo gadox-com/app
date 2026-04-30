@@ -110,7 +110,30 @@ export default function Animais() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Animais</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{filtered.length} animais encontrados</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-sm font-bold text-orange-500">{filtered.length}</span>
+            <span className="text-sm text-gray-400">
+              {filtered.length === 1 ? 'animal' : 'animais'}
+              {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || search.trim()) ? ' encontrados' : ' ativos'}
+            </span>
+            {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || search.trim()) && (
+              <span className="text-xs text-gray-300">
+                de {animais.length} total
+              </span>
+            )}
+            {filters.status !== 'Todos' && filters.status !== 'ATIVO' && (
+              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{filters.status}</span>
+            )}
+            {filters.local !== 'Todos' && (
+              <span className="text-xs bg-orange-50 text-orange-500 px-2 py-0.5 rounded-full">{filters.local}</span>
+            )}
+            {filters.categoria !== 'Todas' && (
+              <span className="text-xs bg-orange-50 text-orange-500 px-2 py-0.5 rounded-full">{filters.categoria}</span>
+            )}
+            {search.trim() && (
+              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">"{search.trim()}"</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchAnimais} className="btn-secondary p-2">
