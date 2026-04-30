@@ -47,24 +47,23 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
         {/* Header */}
         <div className="border-b border-gray-100 min-h-[72px] flex flex-col justify-center">
           {isOpen ? (
-            <div className="px-4 py-3 flex items-center justify-between">
+            <div className="px-5 py-4 flex items-center justify-between gap-3">
               <img
                 src={LOGO_BASE64}
                 alt="Fazenda São Brás"
-                className="h-8 w-auto object-contain"
-                style={{ filter: 'brightness(0) invert(0)' }}
+                className="w-full max-w-[148px] h-auto object-contain"
               />
               <button
                 onClick={onToggle}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors flex-shrink-0 ml-2"
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors flex-shrink-0"
               >
-                <Menu size={16} />
+                <Menu size={15} />
               </button>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-3 gap-1.5">
+            <div className="flex items-center justify-center py-4">
               <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-                <Menu size={16} />
+                <Menu size={15} />
               </button>
             </div>
           )}

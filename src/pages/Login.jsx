@@ -46,10 +46,10 @@ export default function Login({ onLogin }) {
           <img
             src={LOGO_BASE64}
             alt="Fazenda São Brás"
-            className="h-14 w-auto object-contain mx-auto mb-2"
+            className="h-16 w-auto object-contain mx-auto"
             style={{ filter: 'brightness(0) invert(1)' }}
           />
-          <p className="text-white/40 text-xs mt-3 font-medium tracking-widest uppercase">Controle de Gado</p>
+          <p className="text-white/40 text-xs mt-4 font-medium tracking-widest uppercase">Controle de Gado</p>
         </div>
 
         {/* Form */}
