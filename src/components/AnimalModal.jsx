@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Modal from './Modal'
 import { supabase } from '../lib/supabase'
 import { Save, AlertCircle } from 'lucide-react'
+import { registrarLog } from '../lib/log.js'
 
 const CATEGORIAS = ['BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI']
 const LOCAIS = ['SARANDI', 'CASA', 'CAPANEMA']
@@ -38,10 +39,31 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }))
 
+  // Normaliza brinco: remove zeros à esquerda para comparar (2 == 002 == 02)
+  const normalizeBrinco = (b) => String(parseInt(b, 10) || b.trim().toLowerCase())
+
+  const [brincoStatus, setBrincoStatus] = useState(null) // null | 'checking' | 'ok' | 'duplicado' | { brinco, id }
+
+  async function checkBrinco(valor) {
+    if (!valor.trim()) { setBrincoStatus(null); return }
+    setBrincoStatus('checking')
+    const { data } = await supabase.from('animais').select('id, brinco, raca, categoria, status')
+    if (!data) { setBrincoStatus('ok'); return }
+    const normalAtual = normalizeBrinco(valor)
+    const match = data.find(a => {
+      if (isEdit && a.id === animal.id) return false // ignora o próprio ao editar
+      return normalizeBrinco(a.brinco) === normalAtual
+    })
+    setBrincoStatus(match ? match : 'ok')
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     if (!form.brinco.trim()) return setError('Brinco é obrigatório')
+    if (brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking') {
+      return setError(`Brinco já cadastrado: animal ${brincoStatus.brinco} (${brincoStatus.raca} · ${brincoStatus.categoria} · ${brincoStatus.status})`)
+    }
 
     setLoading(true)
     try {
@@ -59,6 +81,12 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         ;({ error: err } = await supabase.from('animais').insert([{ ...payload, status: 'ATIVO' }]))
       }
       if (err) throw err
+      await registrarLog(
+        isEdit ? 'Editou cadastro' : 'Cadastrou animal',
+        `Brinco ${form.brinco} — ${form.raca} ${form.categoria}`,
+        null,
+        form.brinco
+      )
       onSaved()
       onClose()
     } catch (err) {
@@ -80,7 +108,30 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="label">Brinco *</label>
-            <input className="input-field font-mono" value={form.brinco} onChange={e => set('brinco', e.target.value)} placeholder="Ex: 001" required />
+            <div className="relative">
+              <input
+                className={`input-field font-mono pr-8 ${brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' && brincoStatus !== null ? 'border-red-300 focus:ring-red-400' : brincoStatus === 'ok' ? 'border-green-300 focus:ring-green-400' : ''}`}
+                value={form.brinco}
+                onChange={e => { set('brinco', e.target.value); checkBrinco(e.target.value) }}
+                placeholder="Ex: 001"
+                required
+              />
+              {brincoStatus === 'checking' && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">⏳</span>
+              )}
+              {brincoStatus === 'ok' && form.brinco && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-xs">✓</span>
+              )}
+              {brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 text-xs">✗</span>
+              )}
+            </div>
+            {brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' && (
+              <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                <AlertCircle size={11} />
+                Já existe: brinco <strong>{brincoStatus.brinco}</strong> ({brincoStatus.raca} · {brincoStatus.categoria} · {brincoStatus.status})
+              </p>
+            )}
           </div>
           <div>
             <label className="label">Sexo</label>

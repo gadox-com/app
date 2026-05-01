@@ -6,6 +6,7 @@ import {
   MessageSquare, Scale, AlertTriangle
 } from 'lucide-react'
 import ConfinamentoModal from './ConfinamentoModal'
+import { registrarLog } from '../lib/log.js'
 import ReproducaoModal from './ReproducaoModal'
 
 // ── Ícone cerca ───────────────────────────────────────────────────────
@@ -271,7 +272,9 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
 
   async function saveField(field, value) {
     await supabase.from('animais').update({ [field]: value }).eq('id', animalId)
-    setAnimal(a => ({ ...a, [field]: value })); onSaved?.()
+    setAnimal(a => ({ ...a, [field]: value }))
+    await registrarLog(`Editou ${field}`, `${field}: ${value}`, animalId, animal?.brinco)
+    onSaved?.()
   }
 
   async function toggleStatus() {
@@ -281,6 +284,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
     if (novo === 'ATIVO') {
       await supabase.from('animais').update({ status: 'ATIVO', local: 'CASA', saida: null, motivo_saida: null }).eq('id', animalId)
       setAnimal(a => ({ ...a, status: 'ATIVO', local: 'CASA' }))
+      await registrarLog('Reativou animal', null, animalId, animal?.brinco)
       onSaved?.()
     } else {
       // Se vai desativar, abre o modal de baixa
@@ -302,6 +306,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
     try {
       await supabase.from('peso_historico').insert([{ animal_id: animalId, peso: parseFloat(pesoVal), data_peso: pesoData }])
       await supabase.from('animais').update({ peso: parseFloat(pesoVal), data_peso: pesoData }).eq('id', animalId)
+      await registrarLog('Registrou peso', `${pesoVal} kg em ${pesoData}`, animalId, animal?.brinco)
       setPesoVal(''); setPesoData(new Date().toISOString().split('T')[0])
       fetchAll(); onSaved?.()
     } catch (err) { setPesoError(err.message) }
@@ -321,6 +326,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
     if (!obsTexto.trim()) return
     setSavingObs(true)
     await supabase.from('observacoes_animal').insert([{ animal_id: animalId, texto: obsTexto.trim() }])
+    await registrarLog('Adicionou observação', obsTexto.trim(), animalId, animal?.brinco)
     setObsTexto(''); fetchAll(); setSavingObs(false)
   }
 
@@ -334,6 +340,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
       motivo_saida: motivo, saida: data,
       observacao: obs || animal.observacao
     }).eq('id', animalId)
+    await registrarLog('Desativou animal', `Motivo: ${motivo}`, animalId, animal?.brinco)
     setActiveModal(null); fetchAll(); onSaved?.()
   }
 
@@ -345,6 +352,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
       data_peso: data, saida: data,
       observacao: obs || animal.observacao
     }).eq('id', animalId)
+    await registrarLog('Registrou venda', preco ? `R$ ${parseFloat(preco).toLocaleString('pt-BR')}` : null, animalId, animal?.brinco)
     setActiveModal(null); fetchAll(); onSaved?.()
   }
 

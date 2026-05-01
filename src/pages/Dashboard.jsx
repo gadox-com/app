@@ -18,12 +18,23 @@ export default function Dashboard({ onNavigate }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [perfilId, setPerfilId] = useState(null)
+  const [logs, setLogs] = useState([])
 
   const [userName, setUserName] = useState('')
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
 
   useEffect(() => { fetchData() }, [])
+  const [logs, setLogs] = useState([])
+  useEffect(() => { fetchLogs() }, [])
+  async function fetchLogs() {
+    const { data } = await supabase
+      .from('activity_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setLogs(data || [])
+  }
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const email = data?.user?.email || ''
@@ -363,11 +374,64 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
+      {/* ── Histórico de Atividades ─────────────────────────────── */}
+      {logs.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Histórico de Atividades</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="divide-y divide-gray-50">
+              {logs.map((log) => {
+                const usuario = log.usuario_email
+                  ? log.usuario_email.split('@')[0]
+                  : 'Sistema'
+                const inicial = usuario.charAt(0).toUpperCase()
+                return (
+                  <div key={log.id} className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 transition-colors">
+                    {/* Avatar inicial */}
+                    <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                      {inicial}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-semibold text-gray-700">{usuario}</span>
+                        <span className="text-xs text-gray-400">{log.acao}</span>
+                        {log.animal_brinco && (
+                          <span className="text-xs font-mono bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                            #{log.animal_brinco}
+                          </span>
+                        )}
+                      </div>
+                      {log.detalhes && (
+                        <p className="text-[10px] text-gray-400 mt-0.5 truncate">{log.detalhes}</p>
+                      )}
+                    </div>
+                    {/* Tempo */}
+                    <span className="text-[10px] text-gray-300 flex-shrink-0">
+                      {(() => {
+                        const diff = Math.floor((new Date() - new Date(log.created_at)) / 1000)
+                        if (diff < 60) return 'agora'
+                        if (diff < 3600) return `${Math.floor(diff/60)}m`
+                        if (diff < 86400) return `${Math.floor(diff/3600)}h`
+                        if (diff < 604800) return `${Math.floor(diff/86400)}d`
+                        return new Date(log.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' })
+                      })()}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <AnimalPerfil
         isOpen={!!perfilId}
         onClose={() => setPerfilId(null)}
         animalId={perfilId}
-        onSaved={fetchData}
+        onSaved={() => { fetchData(); fetchLogs() }}
       />
     </div>
   )
