@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { Plus, Search, Edit2, Home, Syringe, DollarSign, Trash2, ChevronUp, ChevronDown, Filter, X, RefreshCw } from 'lucide-react'
+import { Plus, Search, Home, Syringe, DollarSign, Trash2, ChevronUp, ChevronDown, Filter, X, RefreshCw } from 'lucide-react'
 import AnimalModal from '../components/AnimalModal'
 import ConfinamentoModal from '../components/ConfinamentoModal'
 import ReproducaoModal from '../components/ReproducaoModal'
@@ -280,13 +280,6 @@ export default function Animais() {
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() => setModalAnimal({ open: true, data: animal })}
-                          className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
-                          title="Editar"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                        <button
                           onClick={() => setModalConf({ open: true, data: animal })}
                           className="p-1.5 rounded hover:bg-orange-50 text-gray-500 hover:text-orange-600 transition-colors"
                           title="Confinamento"
@@ -329,12 +322,7 @@ export default function Animais() {
       )}
 
       {/* Modals */}
-      <AnimalModal
-        isOpen={modalAnimal.open}
-        onClose={() => setModalAnimal({ open: false, data: null })}
-        animal={modalAnimal.data}
-        onSaved={fetchAnimais}
-      />
+
       <ConfinamentoModal
         isOpen={modalConf.open}
         onClose={() => setModalConf({ open: false, data: null })}
