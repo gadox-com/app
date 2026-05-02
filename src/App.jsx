@@ -1,6 +1,25 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import Sidebar from './components/Sidebar'
+import { Component } from 'react'
+
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  componentDidCatch(error, info) { console.error('ERROR:', error, info) }
+  render() {
+    if (this.state.error) return (
+      <div style={{padding:32,fontFamily:'monospace'}}>
+        <h2 style={{color:'red'}}>Erro capturado:</h2>
+        <pre style={{background:'#f5f5f5',padding:16,borderRadius:8,overflow:'auto'}}>
+          {this.state.error.toString()}
+        </pre>
+        <button onClick={() => this.setState({error:null})} style={{marginTop:16,padding:'8px 16px'}}>Tentar novamente</button>
+      </div>
+    )
+    return this.props.children
+  }
+}
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Animais from './pages/Animais'
@@ -60,7 +79,9 @@ export default function App() {
       />
       {/* pb-16 on mobile to account for bottom nav height */}
       <main className="flex-1 overflow-auto pb-16 lg:pb-0 min-w-0">
-        <PageComponent onNavigate={setCurrentPage} />
+        <ErrorBoundary key={currentPage}>
+          <PageComponent onNavigate={setCurrentPage} />
+        </ErrorBoundary>
       </main>
     </div>
   )
