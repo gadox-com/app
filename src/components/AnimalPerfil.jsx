@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   X, Home, Syringe, DollarSign, Camera, Upload,
-  Loader, ChevronDown, ChevronUp, Check, Pencil,
+  Loader, ChevronDown, ChevronUp, Edit2,
   MessageSquare, Scale, AlertTriangle
 } from 'lucide-react'
 import ConfinamentoModal from './ConfinamentoModal'
@@ -36,6 +36,17 @@ const fmtRel = (d) => {
   return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
 }
 
+// ── Calcular categoria por idade ──────────────────────────────────
+function calcularCategoria(nascimento, sexo) {
+  if (!nascimento) return null
+  const meses = Math.floor((new Date() - new Date(nascimento)) / (1000 * 60 * 60 * 24 * 30.5))
+  const isMacho = sexo === 'MACHO'
+  if (meses <= 12) return isMacho ? 'BEZERRO' : 'BEZERRA'
+  if (meses <= 24) return isMacho ? 'NOVILHO' : 'NOVILHA'
+  if (meses <= 36) return isMacho ? 'BOI' : 'VACA'
+  return isMacho ? 'TOURO' : 'VACA'
+}
+
 // ── Comprimir foto ────────────────────────────────────────────────────
 async function compressImage(file, maxWidth = 1200, quality = 0.8) {
   return new Promise((resolve) => {
@@ -55,43 +66,12 @@ async function compressImage(file, maxWidth = 1200, quality = 0.8) {
   })
 }
 
-// ── Campo editável inline ─────────────────────────────────────────────
-function EditField({ label, value, onSave, type = 'text', options = null, fullWidth = false, displayValue = null }) {
-  const [editing, setEditing] = useState(false)
-  const [val, setVal] = useState(value || '')
-  const [saving, setSaving] = useState(false)
-  const ref = useRef(null)
-  useEffect(() => { if (editing) setTimeout(() => ref.current?.focus(), 40) }, [editing])
-
-  async function save() {
-    setSaving(true); await onSave(val); setSaving(false); setEditing(false)
-  }
-
-  if (editing) return (
-    <div className={`flex flex-col gap-1 ${fullWidth ? 'col-span-2' : ''}`}>
-      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
-      <div className="flex items-center gap-1.5 bg-orange-50 rounded-lg px-2.5 py-1.5 border border-orange-200">
-        {options
-          ? <select ref={ref} value={val} onChange={e => setVal(e.target.value)} className="flex-1 text-sm font-medium text-gray-900 bg-transparent outline-none">{options.map(o => <option key={o}>{o}</option>)}</select>
-          : <input ref={ref} type={type} value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false) }} className="flex-1 text-sm font-medium text-gray-900 bg-transparent outline-none" />
-        }
-        <button onClick={save} disabled={saving} className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center flex-shrink-0">
-          {saving ? <Loader size={9} className="animate-spin" /> : <Check size={9} strokeWidth={3} />}
-        </button>
-        <button onClick={() => setEditing(false)} className="text-gray-400 hover:text-gray-600"><X size={12} /></button>
-      </div>
-    </div>
-  )
-
+// ── Campo de exibição simples ─────────────────────────────────────────
+function InfoField({ label, value, fullWidth = false }) {
   return (
-    <div className={`group flex flex-col gap-0.5 ${fullWidth ? 'col-span-2' : ''}`}>
+    <div className={`flex flex-col gap-0.5 ${fullWidth ? 'col-span-2' : ''}`}>
       <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
-      <div className="flex items-center justify-between gap-1">
-        <span className="text-sm font-medium text-gray-900 leading-snug">{displayValue || value || <span className="text-gray-300">—</span>}</span>
-        <button onClick={() => { setVal(value || ''); setEditing(true) }} className="opacity-0 group-hover:opacity-100 flex-shrink-0 p-0.5 rounded text-gray-300 hover:text-orange-400 transition-all">
-          <Pencil size={10} strokeWidth={2} />
-        </button>
-      </div>
+      <span className="text-sm font-medium text-gray-900 leading-snug">{value || <span className="text-gray-300">—</span>}</span>
     </div>
   )
 }
@@ -270,12 +250,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
     setFotoUrl(null)
   }
 
-  async function saveField(field, value) {
-    await supabase.from('animais').update({ [field]: value }).eq('id', animalId)
-    setAnimal(a => ({ ...a, [field]: value }))
-    await registrarLog(`Editou ${field}`, `${field}: ${value}`, animalId, animal?.brinco)
-    onSaved?.()
-  }
+
 
   async function toggleStatus() {
     setTogglingStatus(true)
@@ -416,6 +391,15 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
 
                 {/* Ações */}
                 <div className="flex items-center gap-1.5">
+                  {/* Editar */}
+                  <button
+                    onClick={() => onRequestEdit && onRequestEdit(animal)}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                    title="Editar animal"
+                  >
+                    <Edit2 size={13} />
+                    Editar
+                  </button>
                   {/* Venda — cinza com ícone roxo */}
                   {animal.status === 'ATIVO' && (
                     <button

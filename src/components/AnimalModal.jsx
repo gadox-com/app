@@ -4,7 +4,15 @@ import { supabase } from '../lib/supabase'
 import { Save, AlertCircle } from 'lucide-react'
 import { registrarLog } from '../lib/log.js'
 
-const CATEGORIAS = ['BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI']
+function calcularCategoria(nascimento, sexo) {
+  if (!nascimento) return null
+  const meses = Math.floor((new Date() - new Date(nascimento)) / (1000 * 60 * 60 * 24 * 30.5))
+  const isMacho = sexo === 'MACHO'
+  if (meses <= 12) return isMacho ? 'BEZERRO' : 'BEZERRA'
+  if (meses <= 24) return isMacho ? 'NOVILHO' : 'NOVILHA'
+  if (meses <= 36) return isMacho ? 'BOI' : 'VACA'
+  return isMacho ? 'TOURO' : 'VACA'
+}
 const LOCAIS = ['SARANDI', 'CASA', 'CAPANEMA']
 const RACAS = ['Nelore', 'Angus', 'Girolando', 'Brahman', 'Hereford', 'Senepol', 'Brangus', 'Simmental', 'Limousin', 'Mestiço', 'Outro']
 
@@ -67,8 +75,10 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
 
     setLoading(true)
     try {
+      const catAuto = calcularCategoria(form.nascimento, form.sexo)
       const payload = {
         ...form,
+        categoria: catAuto || form.categoria,
         peso: form.peso ? parseFloat(form.peso) : null,
         data_peso: form.data_peso || null,
         nascimento: form.nascimento || null,
@@ -151,9 +161,10 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
           </div>
           <div>
             <label className="label">Categoria</label>
-            <select className="input-field" value={form.categoria} onChange={e => set('categoria', e.target.value)}>
-              {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
-            </select>
+            <div className="input-field bg-gray-50 text-gray-500 flex items-center gap-2">
+              <span className="text-xs">🔄</span>
+              <span className="text-sm">{calcularCategoria(form.nascimento, form.sexo) || 'Calculado pelo nascimento'}</span>
+            </div>
           </div>
         </div>
 
