@@ -64,36 +64,113 @@ export default function Relatorios() {
       const { default: jsPDF } = await import('jspdf')
       const { default: autoTable } = await import('jspdf-autotable')
 
-      const doc = new jsPDF({ orientation: 'landscape' })
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW = doc.internal.pageSize.getWidth()
+      const pageH = doc.internal.pageSize.getHeight()
+      const margin = 14
+      const colW = (pageW - margin * 3) / 2  // duas colunas com margem entre elas
+      const hoje = new Date().toLocaleDateString('pt-BR')
+      const dataISO = new Date().toISOString().split('T')[0]
 
-      // Header
-      doc.setFontSize(16)
-      doc.setTextColor(249, 115, 22) // orange
-      doc.text('FAZENDA SÃO BRÁS', 14, 16)
-      doc.setFontSize(10)
-      doc.setTextColor(107, 114, 128)
-      doc.text('Controle de Gado', 14, 22)
-      doc.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28)
-      doc.text(`Total de animais: ${filtered.length}`, 14, 34)
+      // ── Função para desenhar cabeçalho em cada página ──
+      function drawHeader(doc) {
+        doc.setFontSize(14)
+        doc.setTextColor(0, 0, 0)
+        doc.setFont('helvetica', 'bold')
+        doc.text('FAZENDA SÃO BRÁS', margin, 12)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(80, 80, 80)
+        doc.text('Controle de Gado', margin, 17)
+        doc.text(`Emitido em: ${hoje}   Total: ${filtered.length} animais`, margin, 21)
+        // linha separadora
+        doc.setDrawColor(0, 0, 0)
+        doc.setLineWidth(0.3)
+        doc.line(margin, 24, pageW - margin, 24)
+      }
 
-      const body = filtered.map(a => [
-        a.brinco, a.sexo, a.raca, a.categoria, a.local,
-        a.peso ? `${a.peso} kg` : '—',
-        a.data_peso ? new Date(a.data_peso + 'T00:00:00').toLocaleDateString('pt-BR') : '—',
-        a.status,
-      ])
-
-      autoTable(doc, {
-        head: [['Brinco', 'Sexo', 'Raça', 'Categoria', 'Local', 'Peso', 'Data Peso', 'Status']],
-        body,
-        startY: 40,
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: 'bold' },
-        alternateRowStyles: { fillColor: [249, 250, 251] },
-        rowPageBreak: 'avoid',
+      // ── Dividir em duas colunas por página ──
+      // Cada coluna tem sua própria tabela
+      const leftData = []
+      const rightData = []
+      filtered.forEach((a, i) => {
+        const row = [
+          a.brinco,
+          a.sexo === 'MACHO' ? 'M' : 'F',
+          a.raca,
+          a.categoria,
+          a.local,
+        ]
+        if (i % 2 === 0) leftData.push(row)
+        else rightData.push(row)
       })
 
-      doc.save(`fazenda-sao-bras-${new Date().toISOString().split('T')[0]}.pdf`)
+      const tableStyle = {
+        styles: {
+          fontSize: 9,
+          cellPadding: { top: 2.5, bottom: 2.5, left: 3, right: 3 },
+          textColor: [0, 0, 0],
+          lineColor: [0, 0, 0],
+          lineWidth: 0.15,
+          font: 'helvetica',
+        },
+        headStyles: {
+          fillColor: [0, 0, 0],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 9,
+          cellPadding: { top: 3, bottom: 3, left: 3, right: 3 },
+        },
+        alternateRowStyles: {
+          fillColor: [240, 240, 240],
+        },
+        columnStyles: {
+          0: { cellWidth: 14, halign: 'center', fontStyle: 'bold' },  // Brinco
+          1: { cellWidth: 8,  halign: 'center' },                      // S
+          2: { cellWidth: 'auto' },                                     // Raça
+          3: { cellWidth: 22 },                                         // Categoria
+          4: { cellWidth: 22 },                                         // Local
+        },
+        tableWidth: colW,
+        rowPageBreak: 'avoid',
+        showHead: 'everyPage',
+      }
+
+      const head = [['Brinco', 'S', 'Raça', 'Categoria', 'Local']]
+
+      // Coluna esquerda
+      drawHeader(doc)
+      autoTable(doc, {
+        ...tableStyle,
+        head,
+        body: leftData,
+        startY: 28,
+        margin: { left: margin, right: margin + colW + margin },
+        didDrawPage: (data) => { if (data.pageNumber > 1) drawHeader(doc) },
+      })
+
+      // Coluna direita — mesma página, mesma startY
+      const leftFinalY = doc.lastAutoTable.finalY
+      autoTable(doc, {
+        ...tableStyle,
+        head,
+        body: rightData,
+        startY: 28,
+        margin: { left: margin + colW + margin, right: margin },
+        didDrawPage: (data) => { if (data.pageNumber > 1) drawHeader(doc) },
+      })
+
+      // Rodapé em todas as páginas
+      const totalPages = doc.internal.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i)
+        doc.setFontSize(7)
+        doc.setTextColor(150, 150, 150)
+        doc.text(`Página ${i} de ${totalPages}`, pageW - margin, pageH - 6, { align: 'right' })
+        doc.text('Fazenda São Brás — Controle de Gado', margin, pageH - 6)
+      }
+
+      doc.save(`fazenda-sao-bras-${dataISO}.pdf`)
     } catch (err) {
       alert('Erro ao gerar PDF: ' + err.message)
     } finally {
