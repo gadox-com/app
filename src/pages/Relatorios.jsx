@@ -64,110 +64,132 @@ export default function Relatorios() {
       const { default: jsPDF } = await import('jspdf')
       const { default: autoTable } = await import('jspdf-autotable')
 
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-      const pageW = doc.internal.pageSize.getWidth()
-      const pageH = doc.internal.pageSize.getHeight()
-      const margin = 14
-      const colW = (pageW - margin * 3) / 2  // duas colunas com margem entre elas
+      // A4 Landscape
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+      const pageW = doc.internal.pageSize.getWidth() // 297mm
+      const pageH = doc.internal.pageSize.getHeight() // 210mm
+      const marginX = 10
+      const marginTop = 26
+      const gap = 8 // espaço entre as duas colunas
+      const colW = (pageW - marginX * 2 - gap) / 2 // ~129mm cada coluna
+
       const hoje = new Date().toLocaleDateString('pt-BR')
       const dataISO = new Date().toISOString().split('T')[0]
 
-      // ── Função para desenhar cabeçalho em cada página ──
-      function drawHeader(doc) {
-        doc.setFontSize(14)
-        doc.setTextColor(0, 0, 0)
+      // Widths fixas dentro de cada coluna (total ~129mm)
+      const brincoW = 18
+      const sexoW   = 8
+      const catW    = 28
+      const localW  = 24
+      const racaW   = colW - brincoW - sexoW - catW - localW // restante
+
+      function drawHeader() {
         doc.setFont('helvetica', 'bold')
-        doc.text('FAZENDA SÃO BRÁS', margin, 12)
-        doc.setFontSize(8)
+        doc.setFontSize(13)
+        doc.setTextColor(0, 0, 0)
+        doc.text('FAZENDA SÃO BRÁS', marginX, 10)
         doc.setFont('helvetica', 'normal')
+        doc.setFontSize(7)
         doc.setTextColor(80, 80, 80)
-        doc.text('Controle de Gado', margin, 17)
-        doc.text(`Emitido em: ${hoje}   Total: ${filtered.length} animais`, margin, 21)
-        // linha separadora
-        doc.setDrawColor(0, 0, 0)
-        doc.setLineWidth(0.3)
-        doc.line(margin, 24, pageW - margin, 24)
+        doc.text(`Controle de Gado  |  Emitido em: ${hoje}  |  Total: ${filtered.length} animais`, marginX, 15)
+        doc.setDrawColor(0)
+        doc.setLineWidth(0.4)
+        doc.line(marginX, 18, pageW - marginX, 18)
       }
 
-      // ── Dividir em duas colunas por página ──
-      // Cada coluna tem sua própria tabela
-      const leftData = []
-      const rightData = []
-      filtered.forEach((a, i) => {
-        const row = [
-          a.brinco,
-          a.sexo === 'MACHO' ? 'M' : 'F',
-          a.raca,
-          a.categoria,
-          a.local,
-        ]
-        if (i % 2 === 0) leftData.push(row)
-        else rightData.push(row)
-      })
+      // ── Preparar dados ────────────────────────────────────────────
+      // Dividir lista em páginas de duas colunas
+      // Calcular quantas linhas cabem por coluna por página
+      const rowH = 7.5 // altura estimada por linha (mm)
+      const headerH = 8 // altura do cabeçalho da tabela
+      const availH = pageH - marginTop - 8 // altura disponível por coluna
+      const rowsPerCol = Math.floor((availH - headerH) / rowH)
+      const rowsPerPage = rowsPerCol * 2
 
-      const tableStyle = {
+      const rows = filtered.map(a => [
+        a.brinco,
+        a.sexo === 'MACHO' ? 'M' : 'F',
+        (a.raca || '').length > 12 ? (a.raca || '').substring(0, 12) : (a.raca || ''),
+        a.categoria || '',
+        a.local || '',
+      ])
+
+      const tableStyle = (xLeft) => ({
+        startY: marginTop,
+        margin: { left: xLeft, right: 0, top: marginTop, bottom: 8 },
+        tableWidth: colW,
         styles: {
-          fontSize: 9,
-          cellPadding: { top: 2.5, bottom: 2.5, left: 3, right: 3 },
+          fontSize: 8.5,
+          cellPadding: { top: 2, bottom: 2, left: 2.5, right: 2.5 },
           textColor: [0, 0, 0],
           lineColor: [0, 0, 0],
-          lineWidth: 0.15,
+          lineWidth: 0.2,
+          overflow: 'hidden',
           font: 'helvetica',
+          minCellHeight: 0,
         },
         headStyles: {
           fillColor: [0, 0, 0],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
-          fontSize: 9,
-          cellPadding: { top: 3, bottom: 3, left: 3, right: 3 },
+          fontSize: 8.5,
+          cellPadding: { top: 2.5, bottom: 2.5, left: 2.5, right: 2.5 },
+          minCellHeight: 0,
+          valign: 'middle',
         },
-        alternateRowStyles: {
-          fillColor: [240, 240, 240],
-        },
+        alternateRowStyles: { fillColor: [242, 242, 242] },
         columnStyles: {
-          0: { cellWidth: 14, halign: 'center', fontStyle: 'bold' },  // Brinco
-          1: { cellWidth: 8,  halign: 'center' },                      // S
-          2: { cellWidth: 'auto' },                                     // Raça
-          3: { cellWidth: 22 },                                         // Categoria
-          4: { cellWidth: 22 },                                         // Local
+          0: { cellWidth: brincoW, halign: 'center', fontStyle: 'bold' },
+          1: { cellWidth: sexoW,   halign: 'center' },
+          2: { cellWidth: racaW },
+          3: { cellWidth: catW },
+          4: { cellWidth: localW },
         },
-        tableWidth: colW,
-        rowPageBreak: 'avoid',
         showHead: 'everyPage',
-      }
+        rowPageBreak: 'avoid',
+        didDrawPage: () => { drawHeader() },
+      })
 
       const head = [['Brinco', 'S', 'Raça', 'Categoria', 'Local']]
 
-      // Coluna esquerda
-      drawHeader(doc)
-      autoTable(doc, {
-        ...tableStyle,
-        head,
-        body: leftData,
-        startY: 28,
-        margin: { left: margin, right: margin + colW + margin },
-        didDrawPage: (data) => { if (data.pageNumber > 1) drawHeader(doc) },
-      })
+      // Desenha página por página manualmente
+      const totalPages = Math.ceil(rows.length / rowsPerPage)
 
-      // Coluna direita — mesma página, mesma startY
-      const leftFinalY = doc.lastAutoTable.finalY
-      autoTable(doc, {
-        ...tableStyle,
-        head,
-        body: rightData,
-        startY: 28,
-        margin: { left: margin + colW + margin, right: margin },
-        didDrawPage: (data) => { if (data.pageNumber > 1) drawHeader(doc) },
-      })
+      for (let pg = 0; pg < totalPages; pg++) {
+        if (pg > 0) doc.addPage()
+        drawHeader()
 
-      // Rodapé em todas as páginas
-      const totalPages = doc.internal.getNumberOfPages()
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i)
+        const pageRows = rows.slice(pg * rowsPerPage, (pg + 1) * rowsPerPage)
+        const leftRows = pageRows.slice(0, rowsPerCol)
+        const rightRows = pageRows.slice(rowsPerCol)
+
+        // Coluna esquerda
+        if (leftRows.length > 0) {
+          autoTable(doc, {
+            ...tableStyle(marginX),
+            head,
+            body: leftRows,
+            didDrawPage: () => {},  // não redesenha header aqui, já fizemos acima
+          })
+        }
+
+        // Coluna direita
+        if (rightRows.length > 0) {
+          autoTable(doc, {
+            ...tableStyle(marginX + colW + gap),
+            head,
+            body: rightRows,
+            startY: marginTop,
+            didDrawPage: () => {},
+          })
+        }
+
+        // Rodapé
         doc.setFontSize(7)
-        doc.setTextColor(150, 150, 150)
-        doc.text(`Página ${i} de ${totalPages}`, pageW - margin, pageH - 6, { align: 'right' })
-        doc.text('Fazenda São Brás — Controle de Gado', margin, pageH - 6)
+        doc.setTextColor(150)
+        doc.text(`Página ${pg + 1} de ${totalPages}`, pageW - marginX, pageH - 4, { align: 'right' })
+        doc.setTextColor(180)
+        doc.text('Fazenda São Brás', marginX, pageH - 4)
       }
 
       doc.save(`fazenda-sao-bras-${dataISO}.pdf`)
