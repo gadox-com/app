@@ -35,6 +35,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         data_peso: animal.data_peso || '',
         observacao: animal.observacao || '',
         usuario: animal.usuario || '',
+        status: animal.status || 'ATIVO',
       })
     } else {
       setForm({
@@ -76,6 +77,8 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     setLoading(true)
     try {
       const catAuto = calcularCategoria(form.nascimento, form.sexo)
+      // update local too if status changed to VENDIDO
+      const localFinal = form.status === 'VENDIDO' && form.local !== 'VENDIDO' ? form.local : form.local
       const payload = {
         ...form,
         categoria: catAuto || form.categoria,
@@ -112,6 +115,23 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         {error && (
           <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg text-red-700 text-sm">
             <AlertCircle size={16} /> {error}
+          </div>
+        )}
+
+        {/* Status toggle — só aparece ao editar */}
+        {isEdit && (
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+            <div>
+              <div className="text-sm font-semibold text-gray-900">Status do animal</div>
+              <div className="text-xs text-gray-400 mt-0.5">{form.status === 'ATIVO' ? 'Animal ativo no rebanho' : 'Animal inativo / saída registrada'}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => set('status', form.status === 'ATIVO' ? 'VENDIDO' : 'ATIVO')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${form.status === 'ATIVO' ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200'}`}
+            >
+              {form.status === 'ATIVO' ? '● Ativo' : '○ Inativo'}
+            </button>
           </div>
         )}
 
