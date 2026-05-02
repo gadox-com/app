@@ -282,10 +282,16 @@ export default function Animais() {
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(animal.data_peso)}</td>
                     <td className="px-4 py-3">
-                      {animal.status === 'ATIVO'
-                        ? <span className="badge-ativo"><span className="w-1.5 h-1.5 bg-green-500 rounded-full" />Ativo</span>
-                        : <span className="badge-vendido">Vendido</span>
-                      }
+                      <button
+                        onClick={e => toggleStatus(animal, e)}
+                        title={animal.status === 'ATIVO' ? 'Clique para desativar' : 'Clique para reativar'}
+                        className="transition-opacity hover:opacity-70"
+                      >
+                        {animal.status === 'ATIVO'
+                          ? <span className="badge-ativo"><span className="w-1.5 h-1.5 bg-green-500 rounded-full" />Ativo</span>
+                          : <span className="badge-vendido">Inativo</span>
+                        }
+                      </button>
                     </td>
                     <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
@@ -296,14 +302,6 @@ export default function Animais() {
                           title="Editar"
                         >
                           <Edit2 size={14} />
-                        </button>
-                        {/* Ativo/Inativo toggle */}
-                        <button
-                          onClick={e => toggleStatus(animal, e)}
-                          className={`px-2 py-0.5 rounded-full text-xs font-semibold transition-colors ${animal.status === 'ATIVO' ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                          title={animal.status === 'ATIVO' ? 'Clique para desativar' : 'Clique para reativar'}
-                        >
-                          {animal.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
                         </button>
                         <button
                           onClick={e => { e.stopPropagation(); setModalConf({ open: true, data: animal }) }}
