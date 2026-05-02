@@ -340,10 +340,17 @@ export default function Animais() {
         onSaved={fetchAnimais}
       />
       <AnimalPerfil
-        isOpen={!!perfilId}
+        isOpen={!!perfilId && !modalAnimal.open}
         onClose={() => setPerfilId(null)}
         animalId={perfilId}
         onSaved={fetchAnimais}
+        onRequestEdit={(animal) => setModalAnimal({ open: true, data: animal })}
+      />
+      <AnimalModal
+        isOpen={modalAnimal.open}
+        onClose={() => setModalAnimal({ open: false, data: null })}
+        animal={modalAnimal.data}
+        onSaved={() => { fetchAnimais(); setModalAnimal({ open: false, data: null }) }}
       />
     </div>
   )
