@@ -665,3 +665,4 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved }) {
     </>
   )
 }
+}
