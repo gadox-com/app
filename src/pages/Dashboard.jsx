@@ -25,7 +25,6 @@ export default function Dashboard({ onNavigate }) {
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
 
   useEffect(() => { fetchData() }, [])
-  const [logs, setLogs] = useState([])
   useEffect(() => { fetchLogs() }, [])
   async function fetchLogs() {
     const { data } = await supabase
