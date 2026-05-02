@@ -277,10 +277,10 @@ export default function Animais() {
                         : <span className="badge-vendido">Vendido</span>
                       }
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <button
-                          onClick={() => setModalConf({ open: true, data: animal })}
+                          onClick={e => { e.stopPropagation(); setModalConf({ open: true, data: animal }) }}
                           className="p-1.5 rounded hover:bg-orange-50 text-gray-500 hover:text-orange-600 transition-colors"
                           title="Confinamento"
                         >
@@ -288,7 +288,7 @@ export default function Animais() {
                         </button>
                         {animal.sexo === 'FÊMEA' && (
                           <button
-                            onClick={() => setModalRep({ open: true, data: animal })}
+                            onClick={e => { e.stopPropagation(); setModalRep({ open: true, data: animal }) }}
                             className="p-1.5 rounded hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
                             title="Reprodução"
                           >
@@ -297,7 +297,7 @@ export default function Animais() {
                         )}
                         {animal.status === 'ATIVO' && (
                           <button
-                            onClick={() => setModalVenda({ open: true, data: animal })}
+                            onClick={e => { e.stopPropagation(); setModalVenda({ open: true, data: animal }) }}
                             className="p-1.5 rounded hover:bg-green-50 text-gray-500 hover:text-green-600 transition-colors"
                             title="Registrar Venda"
                           >
@@ -305,7 +305,7 @@ export default function Animais() {
                           </button>
                         )}
                         <button
-                          onClick={() => deleteAnimal(animal)}
+                          onClick={e => { e.stopPropagation(); deleteAnimal(animal) }}
                           className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                           title="Excluir"
                         >
