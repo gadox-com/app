@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { Plus, Search, Edit2, Home, Syringe, DollarSign, Trash2, ChevronUp, ChevronDown, Filter, X, RefreshCw, ToggleLeft } from 'lucide-react'
+import { Plus, Search, Edit2, Home, Syringe, DollarSign, Trash2, ChevronUp, ChevronDown, X, RefreshCw, ToggleLeft } from 'lucide-react'
 import AnimalModal from '../components/AnimalModal'
 import ConfinamentoModal from '../components/ConfinamentoModal'
 import ReproducaoModal from '../components/ReproducaoModal'
@@ -19,7 +19,6 @@ export default function Animais() {
   const [filters, setFilters] = useState({ status: 'ATIVO', local: 'Todos', categoria: 'Todas' })
   const [sortField, setSortField] = useState('brinco')
   const [sortDir, setSortDir] = useState('asc')
-  const [showFilters, setShowFilters] = useState(false)
 
   const [modalAnimal, setModalAnimal] = useState({ open: false, data: null })
   const [modalConf, setModalConf] = useState({ open: false, data: null })
@@ -166,59 +165,77 @@ export default function Animais() {
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="card p-4 mb-4">
-        <div className="flex gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-48">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      {/* Search and Filters — sempre visíveis */}
+      <div className="card px-4 py-3 mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
+
+          {/* Busca — menor */}
+          <div className="relative w-44">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
-              className="input-field pl-9"
-              placeholder="Buscar por brinco, raça ou categoria..."
+              className="input-field pl-8 py-1.5 text-sm"
+              placeholder="Brinco ou raça..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`btn-secondary ${showFilters ? 'border-orange-300 text-orange-600' : ''}`}
-          >
-            <Filter size={15} /> Filtros
-            {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas') && (
-              <span className="w-2 h-2 bg-orange-500 rounded-full" />
-            )}
-          </button>
-        </div>
 
-        {showFilters && (
-          <div className="mt-3 pt-3 border-t border-gray-100 flex gap-3 flex-wrap">
-            <div>
-              <label className="label">Status</label>
-              <select className="input-field text-sm" value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}>
-                {STATUS.map(s => <option key={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Local</label>
-              <select className="input-field text-sm" value={filters.local} onChange={e => setFilters(f => ({ ...f, local: e.target.value }))}>
-                {LOCAIS.map(l => <option key={l}>{l}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Categoria</label>
-              <select className="input-field text-sm" value={filters.categoria} onChange={e => setFilters(f => ({ ...f, categoria: e.target.value }))}>
-                {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={() => setFilters({ status: 'Todos', local: 'Todos', categoria: 'Todas' })}
-                className="btn-secondary text-xs py-2"
-              >
-                <X size={13} /> Limpar
-              </button>
+          <div className="w-px h-6 bg-gray-200" />
+
+          {/* Status */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Status</span>
+            <div className="flex gap-1">
+              {['Todos', 'ATIVO', 'VENDIDO'].map(s => (
+                <button key={s} onClick={() => setFilters(f => ({ ...f, status: s }))}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                    filters.status === s
+                      ? s === 'ATIVO' ? 'bg-green-600 text-white'
+                      : s === 'VENDIDO' ? 'bg-red-500 text-white'
+                      : 'bg-gray-800 text-white'
+                      : s === 'ATIVO' ? 'bg-green-50 text-green-700 hover:bg-green-100'
+                      : s === 'VENDIDO' ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}>
+                  {s === 'Todos' ? 'Todos' : s === 'ATIVO' ? '● Ativos' : '○ Vendidos'}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+
+          <div className="w-px h-6 bg-gray-200" />
+
+          {/* Local */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Local</span>
+            <select className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-orange-400"
+              value={filters.local} onChange={e => setFilters(f => ({ ...f, local: e.target.value }))}>
+              {LOCAIS.map(l => <option key={l}>{l}</option>)}
+            </select>
+          </div>
+
+          <div className="w-px h-6 bg-gray-200" />
+
+          {/* Categoria */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Categoria</span>
+            <select className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-orange-400"
+              value={filters.categoria} onChange={e => setFilters(f => ({ ...f, categoria: e.target.value }))}>
+              {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+
+          {/* Limpar — só aparece se tiver filtro ativo */}
+          {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || search.trim()) && (
+            <>
+              <div className="w-px h-6 bg-gray-200" />
+              <button onClick={() => { setFilters({ status: 'ATIVO', local: 'Todos', categoria: 'Todas' }); setSearch('') }}
+                className="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 transition-colors font-medium">
+                <X size={12} /> Limpar
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Table */}
