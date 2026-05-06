@@ -13,13 +13,21 @@ import { supabase } from '../lib/supabase'
 import { LOGO_BASE64 } from '../assets/logo.js'
 import { FAVICON_BASE64 } from '../assets/favicon.js'
 
-const NAV_ITEMS = [
-  { id: 'busca', label: 'Busca', icon: Search },
+const NAV_ITEMS_DESKTOP = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'animais', label: 'Animais', icon: Beef },
   { id: 'confinamento', label: 'Confinamento', icon: Home },
   { id: 'reproducao', label: 'Reprodução', icon: Syringe },
   { id: 'vendas', label: 'Vendas', icon: ShoppingCart },
+  { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
+]
+
+const NAV_ITEMS_MOBILE = [
+  { id: 'busca', label: 'Busca', icon: Search },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'animais', label: 'Animais', icon: Beef },
+  { id: 'confinamento', label: 'Confinamento', icon: Home },
+  { id: 'reproducao', label: 'Reprodução', icon: Syringe },
   { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
 ]
 
@@ -62,7 +70,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS_DESKTOP.map((item) => {
             const Icon = item.icon
             const isActive = currentPage === item.id
             return (
@@ -108,7 +116,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
       {/* ── MOBILE BOTTOM NAV (< lg) ──────────────────────────────── */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 safe-area-pb">
         <div className="flex items-stretch">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS_DESKTOP.map((item) => {
             const Icon = item.icon
             const isActive = currentPage === item.id
             return (

@@ -42,7 +42,13 @@ const PAGES = {
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('currentPage') || 'busca')
+  const [currentPage, setCurrentPage] = useState(() => {
+    const saved = localStorage.getItem('currentPage')
+    const isMobile = window.innerWidth < 1024
+    // Mobile: default to busca. Desktop: default to dashboard
+    if (isMobile) return (saved && saved !== 'dashboard') ? saved : 'busca'
+    return (saved && saved !== 'busca') ? saved : 'dashboard'
+  })
   const navigate = (page) => { setCurrentPage(page); localStorage.setItem('currentPage', page) }
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
