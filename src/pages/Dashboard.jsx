@@ -147,22 +147,12 @@ export default function Dashboard({ onNavigate }) {
       {/* KPIs principais */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
-        {/* Total — destaque laranja */}
+        {/* Ativos — destaque laranja */}
         <div className="rounded-2xl p-5 bg-gradient-to-br from-orange-500 to-orange-400 text-white">
-          <Beef size={16} className="text-orange-200 mb-3" />
-          <div className="text-4xl font-bold leading-none">{animais.length}</div>
-          <div className="text-sm font-semibold mt-1 text-white/90">Total do Rebanho</div>
-          <div className="text-xs text-orange-200 mt-0.5">animais cadastrados</div>
-        </div>
-
-        {/* Ativos */}
-        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
-          <TrendingUp size={16} className="text-orange-400 mb-3" />
-          <div className="text-4xl font-bold text-gray-900 leading-none">{ativos.length}</div>
-          <div className="text-sm font-semibold text-gray-700 mt-1">Ativos</div>
-          <div className="text-xs text-gray-400 mt-0.5">
-            {animais.length ? ((ativos.length / animais.length) * 100).toFixed(0) : 0}% do total
-          </div>
+          <TrendingUp size={16} className="text-orange-200 mb-3" />
+          <div className="text-4xl font-bold leading-none">{ativos.length}</div>
+          <div className="text-sm font-semibold mt-1 text-white/90">Animais Ativos</div>
+          <div className="text-xs text-orange-200 mt-0.5">{animais.length ? ((ativos.length / animais.length) * 100).toFixed(0) : 0}% do rebanho</div>
         </div>
 
         {/* Vendidos */}
@@ -171,6 +161,14 @@ export default function Dashboard({ onNavigate }) {
           <div className="text-4xl font-bold text-gray-400 leading-none">{vendidos.length}</div>
           <div className="text-sm font-semibold text-gray-500 mt-1">Vendidos</div>
           <div className="text-xs text-gray-400 mt-0.5">saídas registradas</div>
+        </div>
+
+        {/* Total */}
+        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
+          <Beef size={16} className="text-orange-400 mb-3" />
+          <div className="text-4xl font-bold text-gray-900 leading-none">{animais.length}</div>
+          <div className="text-sm font-semibold text-gray-700 mt-1">Total do Rebanho</div>
+          <div className="text-xs text-gray-400 mt-0.5">animais cadastrados</div>
         </div>
 
         {/* Clima — Pinhal de São Bento */}
@@ -271,75 +269,39 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      {/* Cards por fazenda */}
+      {/* Cards por fazenda — só contagem */}
       <div>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Por Fazenda</p>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {FAZENDAS.map(({ key, label }) => {
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Animais por Fazenda</p>
+        <div className="grid grid-cols-3 gap-4">
+          {[{key:'CASA',label:'Casa'},{key:'CAPANEMA',label:'Capanema'},{key:'SARANDI',label:'Sarandi'}].map(({ key, label }) => {
             const lista = ativos.filter(a => a.local === key)
-            const ultimos = [...lista]
-              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-              .slice(0, 5)
             const cats = CATEGORIAS_ORDER
               .map(c => ({ cat: c, count: lista.filter(a => a.categoria === c).length }))
               .filter(x => x.count > 0)
-
             return (
-              <div key={key} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                {/* Header */}
-                <div className="px-5 pt-4 pb-3 border-b border-gray-100">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-gray-900">{label}</span>
-                    <span className="text-2xl font-bold text-orange-500">{lista.length}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {cats.length === 0
-                      ? <span className="text-xs text-gray-300">Nenhum ativo</span>
-                      : cats.map(({ cat, count }) => (
-                        <span key={cat} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-full text-xs text-gray-500">
-                          <span className="font-bold text-gray-700">{count}</span>
-                          {cat.charAt(0) + cat.slice(1).toLowerCase()}
-                        </span>
-                      ))
-                    }
-                  </div>
+              <div key={key} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-bold text-gray-900">{label}</span>
+                  <span className="text-2xl font-black text-orange-500">{lista.length}</span>
                 </div>
-
-                {/* Lista */}
-                <div className="divide-y divide-gray-50">
-                  {ultimos.length === 0
-                    ? <div className="px-5 py-5 text-center text-sm text-gray-300">Nenhum animal</div>
-                    : ultimos.map(animal => (
-                      <button
-                        key={animal.id}
-                        onClick={() => setPerfilId(animal.id)}
-                        className="w-full flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 transition-colors text-left group"
-                      >
-                        <span className="font-mono text-xs text-gray-300 w-6 flex-shrink-0">{animal.brinco}</span>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium text-gray-800">{animal.raca}</span>
-                          <span className="text-xs text-gray-400 ml-2">{animal.categoria} · {animal.sexo === 'MACHO' ? '♂' : '♀'}</span>
+                {cats.length === 0
+                  ? <p className="text-xs text-gray-300">Nenhum animal ativo</p>
+                  : <div className="space-y-1.5">
+                      {cats.map(({ cat, count }) => (
+                        <div key={cat} className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">{cat.charAt(0) + cat.slice(1).toLowerCase()}</span>
+                          <span className="text-xs font-bold text-gray-800">{count}</span>
                         </div>
-                        {animal.peso && <span className="text-xs text-gray-400">{animal.peso}kg</span>}
-                        <ChevronRight size={13} className="text-gray-200 group-hover:text-orange-400 transition-colors flex-shrink-0" />
-                      </button>
-                    ))
-                  }
-                </div>
-
-                {lista.length > 5 && (
-                  <button
-                    onClick={() => onNavigate('animais')}
-                    className="w-full py-2.5 text-xs font-bold text-orange-500 hover:bg-orange-50 transition-colors border-t border-gray-100 text-center"
-                  >
-                    Ver todos os {lista.length} →
-                  </button>
-                )}
+                      ))}
+                    </div>
+                }
               </div>
             )
           })}
         </div>
       </div>
+
+
 
       {/* Últimas alterações */}
       <div>
