@@ -40,7 +40,8 @@ const PAGES = {
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState('dashboard')
+  const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('currentPage') || 'dashboard')
+  const navigate = (page) => { setCurrentPage(page); localStorage.setItem('currentPage', page) }
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function App() {
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       <Sidebar
         currentPage={currentPage}
-        onNavigate={setCurrentPage}
+        onNavigate={navigate}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         user={session.user}
@@ -80,7 +81,7 @@ export default function App() {
       {/* pb-16 on mobile to account for bottom nav height */}
       <main className="flex-1 overflow-auto pb-16 lg:pb-0 min-w-0">
         <ErrorBoundary key={currentPage}>
-          <PageComponent onNavigate={setCurrentPage} />
+          <PageComponent onNavigate={navigate} />
         </ErrorBoundary>
       </main>
     </div>

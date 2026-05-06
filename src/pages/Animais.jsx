@@ -262,6 +262,8 @@ export default function Animais() {
                     { label: 'Peso', field: 'peso' },
                     { label: 'Data Peso', field: 'data_peso' },
                     { label: 'Status', field: 'status' },
+                    { label: 'Cadastro', field: 'created_at' },
+                    { label: 'Alterado', field: 'updated_at' },
                   ].map(col => (
                     <th
                       key={col.field}
@@ -317,6 +319,8 @@ export default function Animais() {
                         }
                       </button>
                     </td>
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{animal.created_at ? new Date(animal.created_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{animal.updated_at ? new Date(animal.updated_at).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'2-digit'}) : '—'}</td>
                     <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         {/* Editar */}
