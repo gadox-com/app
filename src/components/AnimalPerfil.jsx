@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { X, Home, Syringe, DollarSign, Camera, Upload, Loader, Edit2, MessageSquare, Scale, AlertTriangle } from 'lucide-react'
 import { registrarLog } from '../lib/log.js'
+import { useRole } from '../lib/role.jsx'
 import ConfinamentoModal from './ConfinamentoModal'
 import ReproducaoModal from './ReproducaoModal'
 
@@ -166,6 +167,7 @@ function VendaModal({ animal, onConfirm, onClose }) {
 
 // ── Principal ─────────────────────────────────────────────────────────
 export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onRequestEdit }) {
+  const { isViewer } = useRole()
   const [animal, setAnimal] = useState(null)
   const [pesos, setPesos] = useState([])
   const [observacoes, setObservacoes] = useState([])
@@ -330,23 +332,25 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                     <line x1="7" y1="7" x2="7.01" y2="7"/>
                   </svg>
                   <span className="font-mono text-xl font-black text-gray-900 tracking-tight">{animal.brinco}</span>
-                  <button onClick={toggleStatus} disabled={togglingStatus}
+                  <button onClick={isViewer ? undefined : toggleStatus} disabled={togglingStatus || isViewer}
                     className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-all ${animal.status === 'ATIVO' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}>
                     {togglingStatus ? '...' : animal.status === 'ATIVO' ? '● Ativo' : '○ Inativo'}
                   </button>
                   {animal.status === 'ATIVO' && (
-                    <button onClick={toggleConfinado} disabled={togglingConfinado}
+                    <button onClick={isViewer ? undefined : toggleConfinado} disabled={togglingConfinado || isViewer}
                       className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border transition-all ${animal.confinado ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'}`}>
                       <FenceIcon />{animal.confinado ? 'Confinado' : 'Solto'}
                     </button>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => onRequestEdit && onRequestEdit(animal)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
-                    <Edit2 size={12} /> Editar
-                  </button>
-                  {animal.status === 'ATIVO' && (
+                  {!isViewer && (
+                    <button onClick={() => onRequestEdit && onRequestEdit(animal)}
+                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                      <Edit2 size={12} /> Editar
+                    </button>
+                  )}
+                  {!isViewer && animal.status === 'ATIVO' && (
                     <button onClick={() => setActiveModal('venda')}
                       className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-200">
                       <DollarSign size={12} /> Venda
@@ -360,6 +364,9 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                   <button onClick={() => setActiveModal('conf')} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Confinamento">
                     <Home size={15} />
                   </button>
+                  {isViewer && (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200">Visualização</span>
+                  )}
                   <div className="w-px h-4 bg-gray-200 mx-0.5" />
                   <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors">
                     <X size={18} />
@@ -418,7 +425,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                       <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Observações</span>
                       {observacoes.length > 0 && <span className="bg-orange-100 text-orange-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{observacoes.length}</span>}
                     </div>
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2 flex-shrink-0">
+                    {!isViewer && <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2 flex-shrink-0">
                       <MessageSquare size={12} className="text-gray-400 flex-shrink-0" />
                       <input className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
                         placeholder="Ex: vacinado contra aftosa..."
@@ -428,7 +435,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${obsTexto.trim() ? 'bg-orange-500 hover:bg-orange-600 shadow-sm' : 'bg-gray-200'}`}>
                         {savingObs ? <Loader size={10} className="animate-spin text-white" /> : <SaveIcon />}
                       </button>
-                    </div>
+                    </div>}
                     <div className="flex-1 overflow-y-auto space-y-0.5">
                       {observacoes.length === 0
                         ? <p className="text-xs text-gray-400 text-center py-3">Nenhuma observação</p>
@@ -482,7 +489,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                       <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pesagens</span>
                       {pesos.length > 0 && <span className="bg-orange-100 text-orange-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pesos.length}</span>}
                     </div>
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2.5 flex-shrink-0">
+                    {!isViewer && <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2.5 flex-shrink-0">
                       <Scale size={12} className="text-gray-400 flex-shrink-0" />
                       <input type="number" step="0.1"
                         className="w-20 text-sm bg-transparent outline-none text-gray-800 placeholder-gray-400 font-mono font-semibold"
@@ -496,7 +503,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${pesoVal ? 'bg-orange-500 hover:bg-orange-600 shadow-sm' : 'bg-gray-200'}`}>
                         {savingPeso ? <Loader size={10} className="animate-spin text-white" /> : <SaveIcon />}
                       </button>
-                    </div>
+                    </div>}
                     {pesoError && <p className="text-xs text-red-500 mb-1 flex-shrink-0">{pesoError}</p>}
                     <div className="flex-1 overflow-y-auto">
                       {pesos.length === 0

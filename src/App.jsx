@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import Sidebar from './components/Sidebar'
+import { RoleProvider } from './lib/role.jsx'
 import { Component } from 'react'
 
 class ErrorBoundary extends Component {
@@ -70,6 +71,7 @@ export default function App() {
   const PageComponent = PAGES[currentPage] || Dashboard
 
   return (
+    <RoleProvider>
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       <Sidebar
         currentPage={currentPage}
@@ -85,5 +87,6 @@ export default function App() {
         </ErrorBoundary>
       </main>
     </div>
+    </RoleProvider>
   )
 }
