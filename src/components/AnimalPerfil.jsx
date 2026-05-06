@@ -55,7 +55,7 @@ async function compressImage(file) {
 function F({ label, value }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
+      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</span>
       <span className="text-sm font-medium text-gray-900">{value || <span className="text-gray-300">—</span>}</span>
     </div>
   )
@@ -364,7 +364,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
 
                   {/* Q1 — Informações */}
                   <div className="h-1/2 border-b border-gray-100 px-5 py-4 overflow-y-auto">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Informações</p>
+                    <p className="text-xs font-bold text-gray-700 uppercase tracking-widest mb-3">Informações</p>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                       <F label="Brinco" value={animal.brinco} />
                       <F label="Sexo" value={animal.sexo} />
@@ -398,25 +398,25 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Observações</p>
                       {observacoes.length > 0 && <span className="text-[10px] bg-orange-100 text-orange-500 font-bold px-1.5 py-0.5 rounded-full">{observacoes.length}</span>}
                     </div>
-                    <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl mb-2 flex-shrink-0">
-                      <MessageSquare size={12} className="text-gray-300 flex-shrink-0" />
-                      <input className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-300"
+                    <div className="flex items-center gap-2 p-2.5 bg-gray-100 rounded-xl mb-2 border border-gray-200 flex-shrink-0">
+                      <MessageSquare size={12} className="text-gray-500 flex-shrink-0" />
+                      <input className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
                         placeholder="Ex: vacinado contra aftosa..."
                         value={obsTexto} onChange={e => setObsTexto(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') salvarObservacao() }} />
                       <button onClick={salvarObservacao} disabled={savingObs || !obsTexto.trim()}
                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${obsTexto.trim() ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm' : 'bg-gray-100 text-gray-300'}`}>
-                        {savingObs ? <Loader size={10} className="animate-spin" /> : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                        {savingObs ? <Loader size={10} className="animate-spin" /> : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>}
                       </button>
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-0.5">
                       {observacoes.length === 0
-                        ? <p className="text-xs text-gray-300 text-center py-3">Nenhuma observação</p>
+                        ? <p className="text-xs text-gray-500 text-center py-3">Nenhuma observação registrada</p>
                         : observacoes.map(o => (
                           <div key={o.id} className="group flex items-start justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm text-gray-700 leading-snug">{o.texto}</p>
-                              <p className="text-[10px] text-gray-400 mt-0.5">{fmtRel(o.created_at)}</p>
+                              <p className="text-sm font-medium text-gray-800 leading-snug">{o.texto}</p>
+                              <p className="text-[10px] text-gray-500 mt-0.5">{fmtRel(o.created_at)}</p>
                             </div>
                             <button onClick={() => deletarObservacao(o.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 flex-shrink-0 mt-0.5"><X size={11} /></button>
                           </div>
@@ -462,8 +462,8 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                       <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pesagens</p>
                       {pesos.length > 0 && <span className="text-[10px] bg-orange-100 text-orange-500 font-bold px-1.5 py-0.5 rounded-full">{pesos.length}</span>}
                     </div>
-                    <div className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl mb-2 flex-shrink-0">
-                      <Scale size={12} className="text-gray-300 flex-shrink-0" />
+                    <div className="flex items-center gap-2 p-2.5 bg-gray-100 rounded-xl mb-2 border border-gray-200 flex-shrink-0">
+                      <Scale size={12} className="text-gray-500 flex-shrink-0" />
                       <input type="number" step="0.1" className="w-20 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-300 font-mono"
                         placeholder="0.0 kg" value={pesoVal}
                         onChange={e => setPesoVal(e.target.value)}
@@ -472,13 +472,13 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                         value={pesoData} onChange={e => setPesoData(e.target.value)} />
                       <button onClick={salvarPeso} disabled={savingPeso || !pesoVal}
                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${pesoVal ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm' : 'bg-gray-100 text-gray-300'}`}>
-                        {savingPeso ? <Loader size={10} className="animate-spin" /> : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                        {savingPeso ? <Loader size={10} className="animate-spin" /> : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>}
                       </button>
                     </div>
                     {pesoError && <p className="text-xs text-red-500 mb-1 flex-shrink-0">{pesoError}</p>}
                     <div className="flex-1 overflow-y-auto space-y-0.5">
                       {pesos.length === 0
-                        ? <div className="flex flex-col items-center justify-center h-16 text-gray-300"><Scale size={18} className="mb-1" /><p className="text-xs">Nenhuma pesagem</p></div>
+                        ? <div className="flex flex-col items-center justify-center h-16 text-gray-300"><Scale size={18} className="mb-1" /><p className="text-xs text-gray-500">Nenhuma pesagem registrada</p></div>
                         : pesos.map((p, i) => {
                           const ant = pesos[i + 1]
                           const ganho = ant ? (p.peso - ant.peso).toFixed(1) : null
@@ -486,7 +486,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                             <div key={p.id} className="group flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                               <div className="flex items-center gap-2.5">
                                 <span className="text-sm font-bold text-gray-900 font-mono w-14">{p.peso}kg</span>
-                                <span className="text-xs text-gray-400">{fd(p.data_peso)}</span>
+                                <span className="text-xs font-medium text-gray-600">{fd(p.data_peso)}</span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 {ganho !== null && (
