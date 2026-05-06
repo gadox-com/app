@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import Sidebar from './components/Sidebar'
 import { RoleProvider, useRole } from './lib/role.jsx'
-import BuscaRapida from './pages/BuscaRapida.jsx'
 import { Component } from 'react'
 
 class ErrorBoundary extends Component {
