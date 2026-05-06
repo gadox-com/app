@@ -368,6 +368,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                     <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                       <F label="Brinco" value={animal.brinco} />
                       <F label="Sexo" value={animal.sexo} />
+                      {animal.matriz && <F label="Matriz" value={animal.matriz} />}
                       <F label="Raça" value={animal.raca} />
                       <F label="Categoria" value={calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria} />
                       <F label="Local" value={animal.local} />
