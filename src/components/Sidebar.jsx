@@ -7,12 +7,14 @@ import {
   Menu,
   Beef,
   LogOut,
+  Search,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { LOGO_BASE64 } from '../assets/logo.js'
 import { FAVICON_BASE64 } from '../assets/favicon.js'
 
 const NAV_ITEMS = [
+  { id: 'busca', label: 'Busca', icon: Search },
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'animais', label: 'Animais', icon: Beef },
   { id: 'confinamento', label: 'Confinamento', icon: Home },

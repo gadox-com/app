@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import Sidebar from './components/Sidebar'
-import { RoleProvider } from './lib/role.jsx'
+import { RoleProvider, useRole } from './lib/role.jsx'
+import BuscaRapida from './pages/BuscaRapida.jsx'
 import { Component } from 'react'
 
 class ErrorBoundary extends Component {
@@ -41,7 +42,7 @@ const PAGES = {
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('currentPage') || 'dashboard')
+  const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('currentPage') || 'busca')
   const navigate = (page) => { setCurrentPage(page); localStorage.setItem('currentPage', page) }
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
