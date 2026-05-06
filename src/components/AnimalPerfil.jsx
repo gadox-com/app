@@ -51,17 +51,16 @@ async function compressImage(file) {
   })
 }
 
-// ── Campo info simples ────────────────────────────────────────────────
-function F({ label, value }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</span>
-      <span className="text-sm font-medium text-gray-900">{value || <span className="text-gray-300">—</span>}</span>
-    </div>
-  )
-}
+// ── Save icon ─────────────────────────────────────────────────────────
+const SaveIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+    <polyline points="17 21 17 13 7 13 7 21"/>
+    <polyline points="7 3 7 8 15 8"/>
+  </svg>
+)
 
-// ── Ícone cerca ───────────────────────────────────────────────────────
+// ── Fence icon ────────────────────────────────────────────────────────
 const FenceIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="4" y1="3" x2="4" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/>
@@ -69,6 +68,22 @@ const FenceIcon = () => (
     <polyline points="4,3 6,6 8,3"/><polyline points="12,3 14,6 16,3"/>
   </svg>
 )
+
+// ── Info row estilo iOS ───────────────────────────────────────────────
+function InfoRow({ label, value, mono = false }) {
+  if (!value || value === '—') return (
+    <div className="flex items-center justify-between py-2.5 px-3.5 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-500">{label}</span>
+      <span className="text-sm text-gray-300">—</span>
+    </div>
+  )
+  return (
+    <div className="flex items-center justify-between py-2.5 px-3.5 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-500">{label}</span>
+      <span className={`text-sm font-semibold text-gray-900 ${mono ? 'font-mono' : ''}`}>{value}</span>
+    </div>
+  )
+}
 
 // ── Modal baixa ───────────────────────────────────────────────────────
 function BaixaModal({ animal, onConfirm, onClose }) {
@@ -170,7 +185,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
   const fileInputRef = useRef(null)
 
   useEffect(() => { if (isOpen && animalId) fetchAll() }, [isOpen, animalId])
-
   useEffect(() => {
     if (!isOpen) return
     const h = (e) => { if (e.key === 'Escape') { if (activeModal) setActiveModal(null); else onClose() } }
@@ -300,7 +314,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: '90vh' }}>
+        <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: '88vh', maxHeight: '780px' }}>
 
           {loading || !animal ? (
             <div className="flex-1 flex items-center justify-center">
@@ -308,116 +322,121 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
             </div>
           ) : (
             <>
-              {/* HEADER */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0 bg-white">
+              {/* ── HEADER ── */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-                      <line x1="7" y1="7" x2="7.01" y2="7"/>
-                    </svg>
-                    <span className="font-mono text-xl font-bold text-gray-900">{animal.brinco}</span>
-                  </div>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                    <line x1="7" y1="7" x2="7.01" y2="7"/>
+                  </svg>
+                  <span className="font-mono text-xl font-black text-gray-900 tracking-tight">{animal.brinco}</span>
                   <button onClick={toggleStatus} disabled={togglingStatus}
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${animal.status === 'ATIVO' ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200'}`}>
-                    {togglingStatus ? '...' : animal.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
+                    className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-all ${animal.status === 'ATIVO' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}>
+                    {togglingStatus ? '...' : animal.status === 'ATIVO' ? '● Ativo' : '○ Inativo'}
                   </button>
                   {animal.status === 'ATIVO' && (
                     <button onClick={toggleConfinado} disabled={togglingConfinado}
-                      className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition-all ${animal.confinado ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 text-blue-500 border-blue-200 hover:bg-blue-100'}`}>
+                      className={`flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border transition-all ${animal.confinado ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'}`}>
                       <FenceIcon />{animal.confinado ? 'Confinado' : 'Solto'}
                     </button>
                   )}
                 </div>
-
                 <div className="flex items-center gap-1.5">
                   <button onClick={() => onRequestEdit && onRequestEdit(animal)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
-                    <Edit2 size={13} /> Editar
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                    <Edit2 size={12} /> Editar
                   </button>
                   {animal.status === 'ATIVO' && (
                     <button onClick={() => setActiveModal('venda')}
-                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors border border-gray-200">
-                      <DollarSign size={13} className="text-purple-500" /> Venda
+                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-200">
+                      <DollarSign size={12} /> Venda
                     </button>
                   )}
                   {animal.sexo === 'FÊMEA' && (
-                    <button onClick={() => setActiveModal('rep')} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors" title="Reprodução">
+                    <button onClick={() => setActiveModal('rep')} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Reprodução">
                       <Syringe size={15} />
                     </button>
                   )}
-                  <button onClick={() => setActiveModal('conf')} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors" title="Confinamento">
+                  <button onClick={() => setActiveModal('conf')} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Confinamento">
                     <Home size={15} />
                   </button>
                   <div className="w-px h-4 bg-gray-200 mx-0.5" />
-                  <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                  <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors">
                     <X size={18} />
                   </button>
                 </div>
               </div>
 
-              {/* BODY 4 quadrantes */}
+              {/* ── BODY ── */}
               <div className="flex flex-1 overflow-hidden">
 
                 {/* ESQUERDA */}
-                <div className="w-1/2 flex flex-col border-r border-gray-100">
+                <div className="w-1/2 border-r border-gray-100 flex flex-col overflow-hidden">
 
-                  {/* Q1 — Informações */}
-                  <div className="h-1/2 border-b border-gray-100 px-5 py-4 overflow-y-auto">
-                    <p className="text-xs font-bold text-gray-700 uppercase tracking-widest mb-3">Informações</p>
+                  {/* Hero — 4 campos em destaque */}
+                  <div className="px-5 py-4 flex-shrink-0" style={{ background: 'linear-gradient(160deg, #fff7ed 0%, #ffffff 60%)' }}>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                      <F label="Brinco" value={animal.brinco} />
-                      <F label="Sexo" value={animal.sexo} />
-                      {animal.matriz && <F label="Matriz" value={animal.matriz} />}
-                      <F label="Raça" value={animal.raca} />
-                      <F label="Categoria" value={calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria} />
-                      <F label="Local" value={animal.local} />
-                      <F label="Confinado" value={animal.confinado ? 'Sim' : 'Não'} />
-                      <F label="Nascimento" value={fd(animal.nascimento)} />
-                      <F label="Idade" value={idade()} />
-                      <F label="Último Peso" value={animal.peso ? `${animal.peso} kg` : null} />
-                      <F label="Data do Peso" value={fd(animal.data_peso)} />
-                      {animal.status === 'VENDIDO' && <>
-                        <F label="Data de Saída" value={fd(animal.saida)} />
-                        <F label="Motivo" value={animal.motivo_saida} />
-                        {animal.preco_venda && <>
-                          <F label="Valor" value={fm(animal.preco_venda)} />
-                          <F label="R$/kg" value={animal.peso ? `R$ ${(animal.preco_venda/animal.peso).toFixed(2)}` : null} />
-                        </>}
-                      </>}
-                      {animal.observacao && (
-                        <div className="col-span-2 pt-2 border-t border-gray-100">
-                          <F label="Observação" value={animal.observacao} />
+                      {[
+                        { label: 'Raça', value: animal.raca },
+                        { label: 'Categoria', value: calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria },
+                        { label: 'Sexo', value: animal.sexo },
+                        { label: 'Local', value: animal.local },
+                      ].map(f => (
+                        <div key={f.label}>
+                          <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{f.label}</div>
+                          <div className="text-base font-bold text-gray-900">{f.value || '—'}</div>
                         </div>
-                      )}
+                      ))}
                     </div>
                   </div>
 
-                  {/* Q3 — Observações */}
-                  <div className="h-1/2 flex flex-col px-5 py-4 overflow-hidden">
-                    <div className="flex items-center gap-2 mb-2.5 flex-shrink-0">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Observações</p>
-                      {observacoes.length > 0 && <span className="text-[10px] bg-orange-100 text-orange-500 font-bold px-1.5 py-0.5 rounded-full">{observacoes.length}</span>}
+                  {/* Lista detalhes estilo iOS */}
+                  <div className="px-5 py-3 flex-shrink-0">
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Detalhes</div>
+                    <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+                      <InfoRow label="Nascimento" value={fd(animal.nascimento)} />
+                      <InfoRow label="Idade" value={idade()} />
+                      <InfoRow label="Último Peso" value={animal.peso ? `${animal.peso} kg` : null} />
+                      <InfoRow label="Data do Peso" value={fd(animal.data_peso)} />
+                      {animal.matriz && <InfoRow label="Matriz" value={animal.matriz} mono />}
+                      <InfoRow label="Confinado" value={animal.confinado ? 'Sim' : 'Não'} />
+                      {animal.status === 'VENDIDO' && <>
+                        <InfoRow label="Data de Saída" value={fd(animal.saida)} />
+                        <InfoRow label="Motivo" value={animal.motivo_saida} />
+                        {animal.preco_venda && <>
+                          <InfoRow label="Valor" value={fm(animal.preco_venda)} />
+                          <InfoRow label="R$/kg" value={animal.peso ? `R$ ${(animal.preco_venda/animal.peso).toFixed(2)}` : null} />
+                        </>}
+                      </>}
+                      {animal.observacao && <InfoRow label="Observação" value={animal.observacao} />}
                     </div>
-                    <div className="flex items-center gap-2 p-2.5 bg-gray-100 rounded-xl mb-2 border border-gray-200 flex-shrink-0">
-                      <MessageSquare size={12} className="text-gray-500 flex-shrink-0" />
+                  </div>
+
+                  {/* Observações */}
+                  <div className="px-5 py-3 flex flex-col flex-1 overflow-hidden">
+                    <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Observações</span>
+                      {observacoes.length > 0 && <span className="bg-orange-100 text-orange-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{observacoes.length}</span>}
+                    </div>
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2 flex-shrink-0">
+                      <MessageSquare size={12} className="text-gray-400 flex-shrink-0" />
                       <input className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
                         placeholder="Ex: vacinado contra aftosa..."
                         value={obsTexto} onChange={e => setObsTexto(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') salvarObservacao() }} />
                       <button onClick={salvarObservacao} disabled={savingObs || !obsTexto.trim()}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${obsTexto.trim() ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm' : 'bg-gray-100 text-gray-300'}`}>
-                        {savingObs ? <Loader size={10} className="animate-spin" /> : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${obsTexto.trim() ? 'bg-orange-500 hover:bg-orange-600 shadow-sm' : 'bg-gray-200'}`}>
+                        {savingObs ? <Loader size={10} className="animate-spin text-white" /> : <SaveIcon />}
                       </button>
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-0.5">
                       {observacoes.length === 0
-                        ? <p className="text-xs text-gray-500 text-center py-3">Nenhuma observação registrada</p>
+                        ? <p className="text-xs text-gray-400 text-center py-3">Nenhuma observação</p>
                         : observacoes.map(o => (
-                          <div key={o.id} className="group flex items-start justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+                          <div key={o.id} className="group flex items-start justify-between gap-2 px-1 py-2 rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-800 leading-snug">{o.texto}</p>
-                              <p className="text-[10px] text-gray-500 mt-0.5">{fmtRel(o.created_at)}</p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">{fmtRel(o.created_at)}</p>
                             </div>
                             <button onClick={() => deletarObservacao(o.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 flex-shrink-0 mt-0.5"><X size={11} /></button>
                           </div>
@@ -430,9 +449,9 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                 {/* DIREITA */}
                 <div className="w-1/2 flex flex-col">
 
-                  {/* Q2 — Foto */}
-                  <div className="h-1/2 border-b border-gray-100 flex flex-col px-5 py-4 overflow-hidden">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5 flex-shrink-0">Foto</p>
+                  {/* Foto */}
+                  <div className="flex flex-col px-5 py-4 border-b border-gray-100" style={{ height: '52%' }}>
+                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2.5 flex-shrink-0">Foto</div>
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
                     <div className="flex-1 min-h-0">
                       {fotoUrl ? (
@@ -446,10 +465,10 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                         </div>
                       ) : (
                         <button onClick={() => fileInputRef.current?.click()} disabled={uploadingFoto}
-                          className="w-full h-full bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-orange-300 hover:bg-orange-50/20 transition-all flex flex-col items-center justify-center gap-2 group">
+                          className="w-full h-full bg-orange-50/40 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-2 group">
                           {uploadingFoto
                             ? <><Loader size={20} className="text-orange-400 animate-spin" /><span className="text-xs text-gray-400">Enviando...</span></>
-                            : <><Upload size={20} className="text-gray-300 group-hover:text-orange-400 transition-colors" /><span className="text-xs font-medium text-gray-400 group-hover:text-orange-500">Adicionar foto</span><span className="text-xs text-gray-300">Comprimida automaticamente</span></>
+                            : <><Upload size={20} className="text-orange-300 group-hover:text-orange-500 transition-colors" /><span className="text-xs font-semibold text-orange-400 group-hover:text-orange-600">Adicionar foto</span><span className="text-xs text-gray-300">Comprimida automaticamente</span></>
                           }
                         </button>
                       )}
@@ -457,42 +476,44 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                     {fotoError && <p className="text-xs text-red-500 mt-1.5 flex-shrink-0">{fotoError}</p>}
                   </div>
 
-                  {/* Q4 — Pesagens */}
-                  <div className="h-1/2 flex flex-col px-5 py-4 overflow-hidden">
+                  {/* Pesagens */}
+                  <div className="flex flex-col px-5 py-4 flex-1 overflow-hidden">
                     <div className="flex items-center gap-2 mb-2.5 flex-shrink-0">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pesagens</p>
-                      {pesos.length > 0 && <span className="text-[10px] bg-orange-100 text-orange-500 font-bold px-1.5 py-0.5 rounded-full">{pesos.length}</span>}
+                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pesagens</span>
+                      {pesos.length > 0 && <span className="bg-orange-100 text-orange-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pesos.length}</span>}
                     </div>
-                    <div className="flex items-center gap-2 p-2.5 bg-gray-100 rounded-xl mb-2 border border-gray-200 flex-shrink-0">
-                      <Scale size={12} className="text-gray-500 flex-shrink-0" />
-                      <input type="number" step="0.1" className="w-20 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-300 font-mono"
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2.5 flex-shrink-0">
+                      <Scale size={12} className="text-gray-400 flex-shrink-0" />
+                      <input type="number" step="0.1"
+                        className="w-20 text-sm bg-transparent outline-none text-gray-800 placeholder-gray-400 font-mono font-semibold"
                         placeholder="0.0 kg" value={pesoVal}
                         onChange={e => setPesoVal(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') salvarPeso() }} />
-                      <input type="date" className="flex-1 text-sm bg-transparent outline-none text-gray-500"
+                      <div className="w-px h-4 bg-gray-200 flex-shrink-0" />
+                      <input type="date" className="flex-1 text-sm bg-transparent outline-none text-gray-600"
                         value={pesoData} onChange={e => setPesoData(e.target.value)} />
                       <button onClick={salvarPeso} disabled={savingPeso || !pesoVal}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${pesoVal ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm' : 'bg-gray-100 text-gray-300'}`}>
-                        {savingPeso ? <Loader size={10} className="animate-spin" /> : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${pesoVal ? 'bg-orange-500 hover:bg-orange-600 shadow-sm' : 'bg-gray-200'}`}>
+                        {savingPeso ? <Loader size={10} className="animate-spin text-white" /> : <SaveIcon />}
                       </button>
                     </div>
                     {pesoError && <p className="text-xs text-red-500 mb-1 flex-shrink-0">{pesoError}</p>}
-                    <div className="flex-1 overflow-y-auto space-y-0.5">
+                    <div className="flex-1 overflow-y-auto">
                       {pesos.length === 0
-                        ? <div className="flex flex-col items-center justify-center h-16 text-gray-300"><Scale size={18} className="mb-1" /><p className="text-xs text-gray-500">Nenhuma pesagem registrada</p></div>
+                        ? <div className="flex flex-col items-center justify-center h-16 text-gray-300"><Scale size={18} className="mb-1" /><p className="text-xs text-gray-400">Nenhuma pesagem registrada</p></div>
                         : pesos.map((p, i) => {
                           const ant = pesos[i + 1]
                           const ganho = ant ? (p.peso - ant.peso).toFixed(1) : null
                           return (
-                            <div key={p.id} className="group flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
-                              <div className="flex items-center gap-2.5">
-                                <span className="text-sm font-bold text-gray-900 font-mono w-14">{p.peso}kg</span>
-                                <span className="text-xs font-medium text-gray-600">{fd(p.data_peso)}</span>
+                            <div key={p.id} className="group flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
+                              <div>
+                                <div className="text-base font-bold text-gray-900 font-mono leading-tight">{p.peso} kg</div>
+                                <div className="text-xs text-gray-400 mt-0.5">{fd(p.data_peso)}</div>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-2">
                                 {ganho !== null && (
-                                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-lg ${parseFloat(ganho) > 0 ? 'bg-orange-50 text-orange-500' : parseFloat(ganho) < 0 ? 'bg-red-50 text-red-400' : 'bg-gray-100 text-gray-400'}`}>
-                                    {parseFloat(ganho) > 0 ? '+' : ''}{ganho}kg
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${parseFloat(ganho) > 0 ? 'bg-orange-50 text-orange-500' : parseFloat(ganho) < 0 ? 'bg-red-50 text-red-400' : 'bg-gray-100 text-gray-400'}`}>
+                                    {parseFloat(ganho) > 0 ? '+' : ''}{ganho} kg
                                   </span>
                                 )}
                                 <button onClick={() => deletarPeso(p.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400"><X size={12} /></button>
@@ -508,7 +529,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
 
               {/* FOOTER */}
               <div className="flex justify-end px-5 py-2.5 border-t border-gray-100 flex-shrink-0 bg-gray-50/50">
-                <button onClick={onClose} className="px-5 py-1.5 bg-gray-900 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition-colors">OK</button>
+                <button onClick={onClose} className="px-6 py-1.5 bg-gray-900 hover:bg-gray-700 text-white text-xs font-bold rounded-lg transition-colors tracking-wide">OK</button>
               </div>
             </>
           )}
