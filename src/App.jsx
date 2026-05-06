@@ -44,10 +44,16 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(() => {
     const saved = localStorage.getItem('currentPage')
-    const isMobile = window.innerWidth < 1024
-    // Mobile: default to busca. Desktop: default to dashboard
-    if (isMobile) return (saved && saved !== 'dashboard') ? saved : 'busca'
-    return (saved && saved !== 'busca') ? saved : 'dashboard'
+    // Detect mobile via userAgent (more reliable than innerWidth on initial load)
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+    if (isMobile) {
+      // Mobile: busca unless user explicitly went elsewhere
+      if (!saved || saved === 'dashboard') return 'busca'
+      return saved
+    }
+    // Desktop: dashboard unless user explicitly went elsewhere
+    if (!saved || saved === 'busca') return 'dashboard'
+    return saved
   })
   const navigate = (page) => { setCurrentPage(page); localStorage.setItem('currentPage', page) }
   const [sidebarOpen, setSidebarOpen] = useState(true)
