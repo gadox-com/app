@@ -16,6 +16,13 @@ export default function Animais() {
   const [animais, setAnimais] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+
+  // Debounce — só filtra 300ms depois de parar de digitar
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 300)
+    return () => clearTimeout(timer)
+  }, [searchInput])
   const [filters, setFilters] = useState({ status: 'ATIVO', local: 'Todos', categoria: 'Todas' })
   const [sortField, setSortField] = useState('brinco')
   const [sortDir, setSortDir] = useState('asc')
@@ -134,9 +141,9 @@ export default function Animais() {
             <span className="text-sm font-bold text-orange-500">{filtered.length}</span>
             <span className="text-sm text-gray-400">
               {filtered.length === 1 ? 'animal' : 'animais'}
-              {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || search.trim()) ? ' encontrados' : ' ativos'}
+              {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || searchInput.trim()) ? ' encontrados' : ' ativos'}
             </span>
-            {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || search.trim()) && (
+            {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || searchInput.trim()) && (
               <span className="text-xs text-gray-300">
                 de {animais.length} total
               </span>
@@ -150,8 +157,8 @@ export default function Animais() {
             {filters.categoria !== 'Todas' && (
               <span className="text-xs bg-orange-50 text-orange-500 px-2 py-0.5 rounded-full">{filters.categoria}</span>
             )}
-            {search.trim() && (
-              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">"{search.trim()}"</span>
+            {searchInput.trim() && (
+              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">"{searchInput.trim()}"</span>
             )}
           </div>
         </div>
@@ -170,13 +177,13 @@ export default function Animais() {
         <div className="flex items-center gap-2 flex-wrap">
 
           {/* Busca — menor */}
-          <div className="relative w-44">
+          <div className="relative w-56">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               className="input-field pl-8 py-1.5 text-sm"
               placeholder="Brinco ou raça..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
             />
           </div>
 
@@ -226,10 +233,10 @@ export default function Animais() {
           </div>
 
           {/* Limpar — só aparece se tiver filtro ativo */}
-          {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || search.trim()) && (
+          {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || searchInput.trim()) && (
             <>
               <div className="w-px h-6 bg-gray-200" />
-              <button onClick={() => { setFilters({ status: 'ATIVO', local: 'Todos', categoria: 'Todas' }); setSearch('') }}
+              <button onClick={() => { setFilters({ status: 'ATIVO', local: 'Todos', categoria: 'Todas' }); setSearch(''); setSearchInput('') }}
                 className="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 transition-colors font-medium">
                 <X size={12} /> Limpar
               </button>
