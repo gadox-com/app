@@ -42,19 +42,7 @@ const PAGES = {
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(() => {
-    const saved = localStorage.getItem('currentPage')
-    // Detect mobile via userAgent (more reliable than innerWidth on initial load)
-    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-    if (isMobile) {
-      // Mobile: busca unless user explicitly went elsewhere
-      if (!saved || saved === 'dashboard') return 'busca'
-      return saved
-    }
-    // Desktop: dashboard unless user explicitly went elsewhere
-    if (!saved || saved === 'busca') return 'dashboard'
-    return saved
-  })
+  const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('currentPage') || 'dashboard')
   const navigate = (page) => { setCurrentPage(page); localStorage.setItem('currentPage', page) }
   const [sidebarOpen, setSidebarOpen] = useState(true)
 

@@ -14,6 +14,13 @@ const FAZENDAS = [
 const CATEGORIAS_ORDER = ['BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI']
 
 export default function Dashboard({ onNavigate }) {
+  // On mobile screens, redirect to Busca Rápida automatically
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      onNavigate('busca')
+    }
+  }, [])
+
   const [animais, setAnimais] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
