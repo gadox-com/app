@@ -415,7 +415,17 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                       <InfoRow label="Idade" value={idade()} />
                       <InfoRow label="Último Peso" value={animal.peso ? `${animal.peso} kg` : null} />
                       <InfoRow label="Data do Peso" value={fd(animal.data_peso)} />
-                      {animal.matriz && <InfoRow label="Matriz" value={animal.matriz} mono />}
+                      {animal.matriz && (
+                        <div className="flex items-center justify-between py-2.5 px-3.5 border-b border-gray-100 last:border-0">
+                          <span className="text-sm text-gray-500">Matriz</span>
+                          <button
+                            onClick={() => { onClose(); setTimeout(() => { document.dispatchEvent(new CustomEvent('openAnimalByBrinco', { detail: animal.matriz })) }, 100) }}
+                            className="font-mono text-sm font-semibold text-orange-500 hover:text-orange-700 hover:underline transition-colors"
+                          >
+                            #{animal.matriz}
+                          </button>
+                        </div>
+                      )}
                       <InfoRow label="Confinado" value={animal.confinado ? 'Sim' : 'Não'} />
                       {animal.status === 'VENDIDO' && <>
                         <InfoRow label="Data de Saída" value={fd(animal.saida)} />
@@ -431,43 +441,25 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
 
                   {/* Filhos da matriz */}
                   {filhos.length > 0 && (
-                    <div className="px-5 pb-3">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="px-5 pb-2">
+                      <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Filhos</span>
                         <span className="bg-orange-100 text-orange-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{filhos.length}</span>
                       </div>
-                      {/* Último em destaque */}
-                      <div className="bg-orange-50 border border-orange-100 rounded-xl px-3 py-2.5 mb-2 flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-[9px] font-bold text-orange-400 uppercase tracking-wider">Mais recente</span>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${filhos[0].status === 'ATIVO' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                              {filhos[0].status === 'ATIVO' ? 'Ativo' : 'Inativo'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-black text-gray-900 text-base">#{filhos[0].brinco}</span>
-                            <span className="text-xs text-gray-500">{filhos[0].raca} · {filhos[0].categoria}</span>
-                          </div>
-                          {filhos[0].nascimento && <div className="text-[10px] text-gray-400 mt-0.5">{fd(filhos[0].nascimento)}</div>}
-                        </div>
-                        {filhos[0].peso && <span className="text-sm font-bold text-gray-700 flex-shrink-0">{filhos[0].peso} kg</span>}
+                      <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+                        {filhos.map((f, i) => (
+                          <button key={f.id} onClick={() => { setAnimal(null); setLoading(true); setTimeout(() => { /* reuse same modal */ }, 0); onClose(); setTimeout(() => { document.dispatchEvent(new CustomEvent('openAnimal', { detail: f.id })) }, 100) }}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-orange-50 transition-colors border-b border-gray-100 last:border-0 text-left">
+                            {i === 0 && <span className="text-[9px] font-bold text-orange-400 bg-orange-100 px-1.5 py-0.5 rounded flex-shrink-0">Recente</span>}
+                            <span className="font-mono font-bold text-gray-900 text-sm flex-shrink-0">#{f.brinco}</span>
+                            <span className="text-xs text-gray-400 flex-shrink-0">{f.raca}</span>
+                            <span className="text-xs text-gray-300 flex-shrink-0">·</span>
+                            <span className="text-xs text-gray-400 flex-shrink-0">{f.categoria}</span>
+                            {f.peso && <span className="text-xs text-gray-400 flex-shrink-0 ml-auto">{f.peso} kg</span>}
+                            <span className={`text-[10px] font-bold flex-shrink-0 ${i === 0 && f.peso ? '' : 'ml-auto'} ${f.status === 'ATIVO' ? 'text-green-500' : 'text-gray-300'}`}>●</span>
+                          </button>
+                        ))}
                       </div>
-                      {/* Demais filhos */}
-                      {filhos.slice(1).map(f => (
-                        <div key={f.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm font-bold text-gray-800">#{f.brinco}</span>
-                            <span className="text-xs text-gray-400">{f.raca} · {f.categoria}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {f.peso && <span className="text-xs text-gray-400">{f.peso} kg</span>}
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${f.status === 'ATIVO' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                              {f.status === 'ATIVO' ? '● Ativo' : '○'}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
                     </div>
                   )}
 

@@ -37,6 +37,23 @@ export default function Animais() {
 
   useEffect(() => { fetchAnimais() }, [])
 
+  // Listen for cross-animal navigation from AnimalPerfil
+  useEffect(() => {
+    const openById = (e) => setPerfilId(e.detail)
+    const openByBrinco = async (e) => {
+      const norm = String(parseInt(e.detail, 10))
+      const { data } = await supabase.from('animais').select('id, brinco')
+      const found = (data || []).find(a => String(parseInt(a.brinco, 10)) === norm)
+      if (found) setPerfilId(found.id)
+    }
+    document.addEventListener('openAnimal', openById)
+    document.addEventListener('openAnimalByBrinco', openByBrinco)
+    return () => {
+      document.removeEventListener('openAnimal', openById)
+      document.removeEventListener('openAnimalByBrinco', openByBrinco)
+    }
+  }, [])
+
   async function fetchAnimais() {
     setLoading(true)
     try {
