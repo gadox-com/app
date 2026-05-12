@@ -429,6 +429,48 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                     </div>
                   </div>
 
+                  {/* Filhos da matriz */}
+                  {filhos.length > 0 && (
+                    <div className="px-5 pb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Filhos</span>
+                        <span className="bg-orange-100 text-orange-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{filhos.length}</span>
+                      </div>
+                      {/* Último em destaque */}
+                      <div className="bg-orange-50 border border-orange-100 rounded-xl px-3 py-2.5 mb-2 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-[9px] font-bold text-orange-400 uppercase tracking-wider">Mais recente</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${filhos[0].status === 'ATIVO' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                              {filhos[0].status === 'ATIVO' ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-gray-900 text-base">#{filhos[0].brinco}</span>
+                            <span className="text-xs text-gray-500">{filhos[0].raca} · {filhos[0].categoria}</span>
+                          </div>
+                          {filhos[0].nascimento && <div className="text-[10px] text-gray-400 mt-0.5">{fd(filhos[0].nascimento)}</div>}
+                        </div>
+                        {filhos[0].peso && <span className="text-sm font-bold text-gray-700 flex-shrink-0">{filhos[0].peso} kg</span>}
+                      </div>
+                      {/* Demais filhos */}
+                      {filhos.slice(1).map(f => (
+                        <div key={f.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm font-bold text-gray-800">#{f.brinco}</span>
+                            <span className="text-xs text-gray-400">{f.raca} · {f.categoria}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {f.peso && <span className="text-xs text-gray-400">{f.peso} kg</span>}
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${f.status === 'ATIVO' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                              {f.status === 'ATIVO' ? '● Ativo' : '○'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Observações */}
                   <div className="px-5 py-3 flex flex-col flex-1 overflow-hidden">
                     <div className="flex items-center gap-2 mb-2 flex-shrink-0">
