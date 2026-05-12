@@ -182,6 +182,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
   const [obsTexto, setObsTexto] = useState('')
   const [savingObs, setSavingObs] = useState(false)
   const [activeModal, setActiveModal] = useState(null)
+  const [filhos, setFilhos] = useState([])
   const [togglingConfinado, setTogglingConfinado] = useState(false)
   const [togglingStatus, setTogglingStatus] = useState(false)
   const fileInputRef = useRef(null)
@@ -203,7 +204,16 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
       supabase.from('observacoes_animal').select('*').eq('animal_id', animalId).order('created_at', { ascending: false }),
     ])
     setAnimal(a); setPesos(p || []); setObservacoes(o || [])
-    if (a) await loadFoto(a.brinco)
+    // Buscar filhos: animais cuja matriz == brinco deste animal
+    if (a) {
+      const { data: f } = await supabase
+        .from('animais')
+        .select('id, brinco, raca, categoria, sexo, nascimento, peso, status')
+        .eq('matriz', a.brinco)
+        .order('nascimento', { ascending: false })
+      setFilhos(f || [])
+      await loadFoto(a.brinco)
+    }
     setLoading(false)
   }
 
