@@ -39,16 +39,12 @@ export default function Login({ onLogin }) {
         />
         <div className="absolute inset-0 bg-black/20" />
 
-        {/* Logo sobre a imagem */}
-        <div className="absolute top-10 left-10">
-          <img src={LOGO_BASE64} alt="GadoX" style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }} />
-        </div>
-
         {/* Badge inferior */}
-        <div className="absolute bottom-10 left-10 right-10">
-          <p className="text-white text-2xl font-bold leading-snug drop-shadow">
-            Controle total do seu rebanho, onde estiver.
-          </p>
+        <div className="absolute bottom-10 left-10">
+          <div className="inline-flex items-center gap-2.5 bg-white/15 backdrop-blur-sm border border-white/25 px-4 py-2.5 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 animate-pulse" />
+            <span className="text-white text-sm font-semibold">Gestão de Gado</span>
+          </div>
         </div>
       </div>
 
@@ -56,8 +52,8 @@ export default function Login({ onLogin }) {
       <div className="flex-1 flex items-center justify-center px-8 py-12">
         <div className="w-full max-w-sm">
 
-          {/* Logo mobile */}
-          <div className="lg:hidden mb-10">
+          {/* Logo */}
+          <div className="mb-8">
             <img src={LOGO_BASE64} alt="GadoX" style={{ height: 28, width: 'auto' }} />
           </div>
 
