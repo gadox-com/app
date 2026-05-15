@@ -54,7 +54,7 @@ export default function Login({ onLogin }) {
 
           {/* Logo */}
           <div className="mb-8">
-            <img src={LOGO_BASE64} alt="GadoX" style={{ height: 28, width: 'auto' }} />
+            <img src={LOGO_BASE64} alt="GadoX" style={{ height: 84, width: 'auto' }} />
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-1">Acesse sua conta</h2>
