@@ -5,15 +5,10 @@ const SUPABASE_ANON_KEY = 'sb_publishable_PwlyaWFCZnYUeBEIfvfO0w_UgK6uLpj'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-// Retorna fazenda_id — tenta user_metadata primeiro, depois tabela
+// Retorna fazenda_id do usuário logado via tabela usuario_fazenda
 export async function getFazendaId() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-
-  // Tenta user_metadata
-  if (user.user_metadata?.fazenda_id) return user.user_metadata.fazenda_id
-
-  // Fallback: busca na tabela usuario_fazenda
   const { data } = await supabase
     .from('usuario_fazenda')
     .select('fazenda_id')
@@ -22,6 +17,7 @@ export async function getFazendaId() {
   return data?.fazenda_id || null
 }
 
+// Retorna os locais da fazenda do usuário logado
 export async function getLocais() {
   const fazendaId = await getFazendaId()
   if (!fazendaId) return []
@@ -33,6 +29,7 @@ export async function getLocais() {
   return (data || []).map(l => l.nome)
 }
 
+// Retorna o nome da fazenda do usuário logado
 export async function getNomeFazenda() {
   const fazendaId = await getFazendaId()
   if (!fazendaId) return 'GadoX'

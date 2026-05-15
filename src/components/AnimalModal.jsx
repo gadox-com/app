@@ -15,34 +15,26 @@ function calcularCategoria(nascimento, sexo) {
 }
 
 const RACAS = ['Nelore', 'Tabapuã', 'Hereford', 'Angus', 'Braford']
-const FAZENDA_ID_FIXO = '458084e7-bbf8-4f2e-8a43-b709bf355b2d'
-
 export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
   const isEdit = !!animal?.id
   const [form, setForm] = useState({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [locais, setLocais] = useState([])
-  const [fazendaId, setFazendaId] = useState(FAZENDA_ID_FIXO)
+  const [fazendaId, setFazendaId] = useState(null)
 
   useEffect(() => {
     async function load() {
-      // Busca fazenda_id do usuário logado
       const { data: { user } } = await supabase.auth.getUser()
-      
       if (user) {
-        // Tenta user_metadata
-        const fidMeta = user?.user_metadata?.fazenda_id
-        if (fidMeta) {
-          setFazendaId(fidMeta)
-        } else {
-          // Busca na tabela usuario_fazenda
-          const { data } = await supabase
-            .from('usuario_fazenda')
-            .select('fazenda_id')
-            .eq('user_id', user.id)
-            .single()
-          if (data?.fazenda_id) setFazendaId(data.fazenda_id)
+        // Sempre busca da tabela usuario_fazenda — fonte confiável
+        const { data } = await supabase
+          .from('usuario_fazenda')
+          .select('fazenda_id')
+          .eq('user_id', user.id)
+          .single()
+        if (data?.fazenda_id) {
+          setFazendaId(data.fazenda_id)
         }
       }
       const locs = await getLocais()
