@@ -13,35 +13,42 @@ const FAZENDAS = [
 
 const CATEGORIAS_ORDER = ['BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI']
 
-export default function Dashboard({ onNavigate }) {
-  // On mobile screens, redirect to Busca Rápida automatically
-  useEffect(() => {
-    if (window.innerWidth < 1024) {
-      onNavigate('busca')
-    }
-  }, [])
+const FRASES = [
+  'Quem controla o rebanho, controla o resultado.',
+  'Cada brinco registrado é um ativo protegido.',
+  'Informação certa na hora certa vale mais que qualquer balança.',
+  'O campo precisa de gestão tanto quanto de chuva.',
+  'Gado bem gerenciado é fazenda rentável.',
+  'Dados de hoje são as decisões de amanhã.',
+  'O que não é medido, não é gerenciado.',
+  'Produtividade começa com organização.',
+]
 
+export default function Dashboard({ onNavigate }) {
   const [animais, setAnimais] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [perfilId, setPerfilId] = useState(null)
   const [logs, setLogs] = useState([])
   const [showAllLogs, setShowAllLogs] = useState(false)
-
   const [userName, setUserName] = useState('')
-  const hour = new Date().getHours()
+  const [hora, setHora] = useState(new Date())
+
+  // Atualiza o relógio a cada minuto
+  useEffect(() => {
+    const timer = setInterval(() => setHora(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const hour = hora.getHours()
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
+  const frase = FRASES[hora.getDate() % FRASES.length]
+
+  const horaFormatada = hora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  const dataFormatada = hora.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
 
   useEffect(() => { fetchData() }, [])
   useEffect(() => { fetchLogs() }, [])
-  async function fetchLogs() {
-    const { data } = await supabase
-      .from('activity_log')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20)
-    setLogs(data || [])
-  }
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       const email = data?.user?.email || ''
@@ -50,23 +57,14 @@ export default function Dashboard({ onNavigate }) {
     })
   }, [])
 
-  const [clima, setClima] = useState(null)
-  useEffect(() => {
-    // Pinhal de São Bento - PR: lat -26.08, lon -53.79
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=-26.08&longitude=-53.79&current=temperature_2m,weathercode,wind_speed_10m&timezone=America/Sao_Paulo')
-      .then(r => r.json())
-      .then(d => {
-        const code = d.current?.weathercode
-        const icons = { 0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️', 45:'🌫️', 48:'🌫️', 51:'🌦️', 53:'🌦️', 55:'🌧️', 61:'🌧️', 63:'🌧️', 65:'🌧️', 71:'🌨️', 73:'🌨️', 75:'🌨️', 80:'🌦️', 81:'🌧️', 82:'⛈️', 95:'⛈️', 96:'⛈️', 99:'⛈️' }
-        const desc = { 0:'Céu aberto', 1:'Poucas nuvens', 2:'Nublado', 3:'Encoberto', 45:'Névoa', 48:'Névoa', 51:'Garoa leve', 53:'Garoa', 55:'Garoa forte', 61:'Chuva leve', 63:'Chuva', 65:'Chuva forte', 80:'Chuva leve', 81:'Chuva', 82:'Chuva forte', 95:'Trovoada', 96:'Trovoada', 99:'Trovoada' }
-        setClima({
-          temp: Math.round(d.current?.temperature_2m),
-          wind: Math.round(d.current?.wind_speed_10m),
-          icon: icons[code] || '🌡️',
-          desc: desc[code] || 'Variável',
-        })
-      }).catch(() => setClima({ temp: null, icon: '🌡️', desc: 'Indisponível', wind: null }))
-  }, [])
+  async function fetchLogs() {
+    const { data } = await supabase
+      .from('activity_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setLogs(data || [])
+  }
 
   async function fetchData() {
     setLoading(true)
@@ -109,7 +107,6 @@ export default function Dashboard({ onNavigate }) {
   const bois = ativos.filter(a => a.categoria === 'BOI')
   const confinados = ativos.filter(a => a.confinado)
   const soltos = ativos.filter(a => !a.confinado)
-  const totalVendas = vendidos.reduce((s, a) => s + (a.preco_venda || 0), 0)
   const pctMachos = ativos.length ? Math.round((machos.length / ativos.length) * 100) : 0
   const pctFemeas = ativos.length ? Math.round((femeas.length / ativos.length) * 100) : 0
 
@@ -134,20 +131,17 @@ export default function Dashboard({ onNavigate }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-400">{greeting}{userName ? `, ${userName}` : ''}</p>
-          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">Fazenda São Brás</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">GadoX</h1>
         </div>
-        <button
-          onClick={fetchData}
-          className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-        >
+        <button onClick={fetchData} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
           <RefreshCw size={15} />
         </button>
       </div>
 
-      {/* KPIs principais */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
-        {/* Ativos — destaque laranja */}
+        {/* Ativos */}
         <div className="rounded-2xl p-5 bg-gradient-to-br from-orange-500 to-orange-400 text-white">
           <TrendingUp size={16} className="text-orange-200 mb-3" />
           <div className="text-4xl font-bold leading-none">{ativos.length}</div>
@@ -171,35 +165,19 @@ export default function Dashboard({ onNavigate }) {
           <div className="text-xs text-gray-400 mt-0.5">animais cadastrados</div>
         </div>
 
-        {/* Clima — Pinhal de São Bento */}
-        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
-          <div className="flex items-start justify-between mb-1">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest leading-tight">Pinhal de S. Bento</p>
-              <p className="text-xs text-gray-300">Paraná · Brasil</p>
-            </div>
-            <span className="text-2xl leading-none">{clima ? clima.icon : '🌡️'}</span>
+        {/* Data e hora */}
+        <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest leading-tight capitalize">{dataFormatada}</p>
+            <div className="text-4xl font-black text-gray-900 leading-none mt-2 font-mono">{horaFormatada}</div>
+            <p className="text-xs text-gray-300 mt-1">Horário de Brasília</p>
           </div>
-          {!clima ? (
-            <div className="text-sm text-gray-300 mt-3">Carregando...</div>
-          ) : clima.temp !== null ? (
-            <>
-              <div className="text-4xl font-bold text-gray-900 leading-none mt-2">{clima.temp}°<span className="text-2xl">C</span></div>
-              <div className="text-sm text-gray-500 mt-1">{clima.desc}</div>
-              {clima.wind !== null && <div className="text-xs text-gray-400 mt-0.5">Vento {clima.wind} km/h</div>}
-            </>
-          ) : (
-            <div className="text-sm text-gray-400 mt-2">Indisponível</div>
-          )}
-          <p className="text-xs text-gray-300 mt-2 capitalize">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' })}</p>
+          <p className="text-[10px] text-gray-400 italic mt-3 leading-snug">"{frase}"</p>
         </div>
-
       </div>
 
       {/* Sexo + Confinados + Categorias */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-
-        {/* Sexo */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-5">Distribuição por Sexo</p>
           <div className="space-y-4">
@@ -224,7 +202,6 @@ export default function Dashboard({ onNavigate }) {
           </div>
         </div>
 
-        {/* Confinados / Soltos */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-5">Confinamento</p>
           <div className="space-y-4">
@@ -249,7 +226,6 @@ export default function Dashboard({ onNavigate }) {
           </div>
         </div>
 
-        {/* Categorias */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Por Categoria</p>
           <div className="grid grid-cols-5 gap-2">
@@ -269,7 +245,7 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      {/* Cards por fazenda — só contagem */}
+      {/* Fazendas */}
       <div>
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Animais por Fazenda</p>
         <div className="grid grid-cols-3 gap-4">
@@ -301,8 +277,6 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-
-
       {/* Últimas alterações */}
       <div>
         <div className="flex items-center justify-between mb-3">
@@ -314,24 +288,17 @@ export default function Dashboard({ onNavigate }) {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="divide-y divide-gray-50">
             {recentes.map((animal, i) => (
-              <button
-                key={animal.id}
-                onClick={() => setPerfilId(animal.id)}
-                className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors text-left group"
-              >
+              <button key={animal.id} onClick={() => setPerfilId(animal.id)}
+                className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors text-left group">
                 <span className="text-xs text-gray-200 w-4 flex-shrink-0 font-medium">{i + 1}</span>
-                <span className="font-mono text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded flex-shrink-0">
-                  {animal.brinco}
-                </span>
+                <span className="font-mono text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded flex-shrink-0">{animal.brinco}</span>
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-semibold text-gray-900">{animal.raca}</span>
                   <span className="text-xs text-gray-400 ml-2 hidden sm:inline">{animal.categoria} · {animal.local}</span>
                   {animal.peso && <span className="text-xs text-gray-400 ml-2 hidden sm:inline">· {animal.peso}kg</span>}
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className={`hidden sm:inline text-xs font-medium px-2 py-0.5 rounded-full ${
-                    animal.status === 'ATIVO' ? 'bg-orange-50 text-orange-500' : 'bg-gray-100 text-gray-400'
-                  }`}>
+                  <span className={`hidden sm:inline text-xs font-medium px-2 py-0.5 rounded-full ${animal.status === 'ATIVO' ? 'bg-orange-50 text-orange-500' : 'bg-gray-100 text-gray-400'}`}>
                     {animal.status === 'ATIVO' ? 'Ativo' : 'Vendido'}
                   </span>
                   <span className="text-xs text-gray-300 w-6 text-right">{formatRelative(animal.updated_at || animal.created_at)}</span>
@@ -343,7 +310,7 @@ export default function Dashboard({ onNavigate }) {
         </div>
       </div>
 
-      {/* ── Histórico de Atividades ─────────────────────────────── */}
+      {/* Histórico de Atividades */}
       {logs.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
