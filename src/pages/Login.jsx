@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { LOGO_BASE64 } from '../assets/logo.js'
 import { FAZENDA_BG } from '../assets/fazenda_bg.js'
-import { Eye, EyeOff, LogIn } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('')
@@ -28,47 +28,41 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #1E5A09 0%, #58C734 60%, #2d7a10 100%)', position: 'relative' }}>
-      {/* Linhas horizontais via SVG */}
-      <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none' }} xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="lines" x="0" y="0" width="100%" height="30" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="29" x2="10000" y2="29" stroke="rgba(255,255,255,0.07)" strokeWidth="1"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#lines)"/>
-        <ellipse cx="80%" cy="10%" rx="35%" ry="40%" fill="rgba(255,255,255,0.07)"/>
-      </svg>
-      <div className="w-full max-w-4xl bg-white rounded-3xl overflow-hidden flex shadow-2xl" style={{ minHeight: '520px' }}>
+    <div className="min-h-screen flex bg-white">
 
-        {/* ESQUERDA — foto */}
-        <div className="hidden lg:block flex-1 relative overflow-hidden">
-          <img
-            src={FAZENDA_BG}
-            alt="GadoX"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(30,90,9,0.3), rgba(0,0,0,0.1))' }} />
-          {/* Badge sobre a foto */}
-          <div className="absolute bottom-8 left-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.3)' }}>
-              <span className="text-white text-sm font-semibold">Controle de Rebanho</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-            </div>
-          </div>
+      {/* ESQUERDA — imagem */}
+      <div className="hidden lg:block w-[45%] flex-shrink-0 relative overflow-hidden rounded-r-3xl">
+        <img
+          src={FAZENDA_BG}
+          alt="GadoX"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/20" />
+
+        {/* Logo sobre a imagem */}
+        <div className="absolute top-10 left-10">
+          <img src={LOGO_BASE64} alt="GadoX" style={{ height: 28, width: 'auto', filter: 'brightness(0) invert(1)' }} />
         </div>
 
-        {/* DIREITA — formulário */}
-        <div className="w-full lg:w-[420px] flex-shrink-0 flex flex-col justify-center px-10 py-12">
+        {/* Badge inferior */}
+        <div className="absolute bottom-10 left-10 right-10">
+          <p className="text-white text-2xl font-bold leading-snug drop-shadow">
+            Controle total do seu rebanho, onde estiver.
+          </p>
+        </div>
+      </div>
 
-          {/* Logo */}
-          <div className="mb-10">
-            <img src={LOGO_BASE64} alt="GadoX" className="h-16 w-auto object-contain" />
-            <div className="w-10 h-0.5 mt-5 rounded-full" style={{ background: '#58C734' }} />
+      {/* DIREITA — formulário */}
+      <div className="flex-1 flex items-center justify-center px-8 py-12">
+        <div className="w-full max-w-sm">
+
+          {/* Logo mobile */}
+          <div className="lg:hidden mb-10">
+            <img src={LOGO_BASE64} alt="GadoX" style={{ height: 28, width: 'auto' }} />
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">Bem-vindo</h2>
-          <p className="text-sm text-gray-400 mb-8">Entre com sua conta para continuar</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-1">Acesse sua conta</h2>
+          <p className="text-sm text-gray-400 mb-8">Entre com suas credenciais para continuar</p>
 
           {error && (
             <div className="mb-5 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
@@ -76,12 +70,12 @@ export default function Login({ onLogin }) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="label">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">E-mail</label>
               <input
                 type="email"
-                className="input-field"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all bg-white"
                 placeholder="seu@email.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -90,32 +84,44 @@ export default function Login({ onLogin }) {
             </div>
 
             <div>
-              <label className="label">Senha</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-gray-700">Senha</label>
+              </div>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
-                  className="input-field pr-10"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all pr-12 bg-white"
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
                 />
                 <button type="button" onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
 
             <button type="submit" disabled={loading}
-              className="w-full disabled:opacity-60 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 mt-2"
-              style={{ background: 'linear-gradient(135deg, #58C734, #45a827)' }}>
-              <LogIn size={16} />
-              {loading ? 'Entrando...' : 'Entrar'}
+              className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors text-sm mt-2">
+              {loading ? 'Entrando...' : 'Acessar conta'}
             </button>
           </form>
 
-          <p className="text-center text-gray-300 text-xs mt-10">
+          <p className="text-center text-sm text-gray-400 mt-8">
+            Primeira vez por aqui?{' '}
+            <a
+              href="https://wa.me/5500000000000?text=Olá! Quero contratar o GadoX."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-500 hover:text-orange-600 font-medium transition-colors"
+            >
+              Fale com nosso suporte
+            </a>
+          </p>
+
+          <p className="text-center text-gray-300 text-xs mt-6">
             © {new Date().getFullYear()} GadoX · Controle de Rebanho
           </p>
         </div>
