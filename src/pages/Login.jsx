@@ -29,11 +29,7 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{
-      background: 'linear-gradient(135deg, #1E5A09 0%, #58C734 60%, #2d7a10 100%)',
-      backgroundImage: [
-        'linear-gradient(135deg, #1E5A09 0%, #58C734 60%, #2d7a10 100%)',
-        'repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(255,255,255,0.04) 28px, rgba(255,255,255,0.04) 29px)',
-      ].join(', '),
+      backgroundImage: 'linear-gradient(135deg, #1E5A09 0%, #58C734 60%, #2d7a10 100%), repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(255,255,255,0.06) 28px, rgba(255,255,255,0.06) 29px)',
       position: 'relative',
     }}>
       {/* Brilho suave no canto superior direito */}
