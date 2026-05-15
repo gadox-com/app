@@ -22,6 +22,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
   const [error, setError] = useState('')
   const [locais, setLocais] = useState([])
   const [fazendaId, setFazendaId] = useState(null)
+  const [loadingFazenda, setLoadingFazenda] = useState(true)
 
   useEffect(() => {
     if (!isOpen) return
@@ -45,6 +46,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
           .order('nome')
         setLocais((locs || []).map(l => l.nome))
       }
+      setLoadingFazenda(false)
     }
     load()
   }, [isOpen])
@@ -97,6 +99,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     e.preventDefault()
     setError('')
     if (!form.brinco.trim()) return setError('Brinco é obrigatório')
+    if (!fazendaId) return setError('Erro: fazenda não identificada. Recarregue a página.')
     if (brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking') {
       return setError(`Brinco já cadastrado: animal ${brincoStatus.brinco} (${brincoStatus.raca} · ${brincoStatus.categoria} · ${brincoStatus.status})`)
     }
@@ -242,7 +245,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
 
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="btn-primary" disabled={loading || loadingFazenda}>
             <Save size={15} />
             {loading ? 'Salvando...' : isEdit ? 'Atualizar' : 'Cadastrar'}
           </button>
