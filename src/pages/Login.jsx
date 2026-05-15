@@ -28,20 +28,17 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{
-      backgroundImage: 'linear-gradient(135deg, #1E5A09 0%, #58C734 60%, #2d7a10 100%), repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(255,255,255,0.06) 28px, rgba(255,255,255,0.06) 29px)',
-      position: 'relative',
-    }}>
-      {/* Brilho suave no canto superior direito */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse at 80% 10%, rgba(255,255,255,0.10) 0%, transparent 55%)',
-      }} />
-      {/* Brilho suave no canto inferior esquerdo */}
-      <div style={{
-        position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse at 15% 90%, rgba(30,90,9,0.5) 0%, transparent 50%)',
-      }} />
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #1E5A09 0%, #58C734 60%, #2d7a10 100%)', position: 'relative' }}>
+      {/* Linhas horizontais via SVG */}
+      <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none' }} xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="lines" x="0" y="0" width="100%" height="30" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="29" x2="10000" y2="29" stroke="rgba(255,255,255,0.07)" strokeWidth="1"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#lines)"/>
+        <ellipse cx="80%" cy="10%" rx="35%" ry="40%" fill="rgba(255,255,255,0.07)"/>
+      </svg>
       <div className="w-full max-w-4xl bg-white rounded-3xl overflow-hidden flex shadow-2xl" style={{ minHeight: '520px' }}>
 
         {/* ESQUERDA — foto */}
