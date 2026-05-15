@@ -5,17 +5,27 @@ const SUPABASE_ANON_KEY = 'sb_publishable_PwlyaWFCZnYUeBEIfvfO0w_UgK6uLpj'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-// Retorna o fazenda_id do usuário logado
+// Retorna o fazenda_id do usuário logado via tabela usuario_fazenda
 export async function getFazendaId() {
-  const { data } = await supabase.auth.getUser()
-  return data?.user?.user_metadata?.fazenda_id || null
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data } = await supabase
+    .from('usuario_fazenda')
+    .select('fazenda_id')
+    .eq('user_id', user.id)
+    .single()
+  return data?.fazenda_id || null
 }
 
 // Retorna os locais da fazenda do usuário logado
 export async function getLocais() {
   const fazendaId = await getFazendaId()
   if (!fazendaId) return []
-  const { data } = await supabase.from('locais').select('nome').eq('fazenda_id', fazendaId).order('nome')
+  const { data } = await supabase
+    .from('locais')
+    .select('nome')
+    .eq('fazenda_id', fazendaId)
+    .order('nome')
   return (data || []).map(l => l.nome)
 }
 
@@ -23,11 +33,10 @@ export async function getLocais() {
 export async function getNomeFazenda() {
   const fazendaId = await getFazendaId()
   if (!fazendaId) return 'GadoX'
-  const { data } = await supabase.from('fazendas').select('nome').eq('id', fazendaId).single()
+  const { data } = await supabase
+    .from('fazendas')
+    .select('nome')
+    .eq('id', fazendaId)
+    .single()
   return data?.nome || 'GadoX'
 }
-
-// Debug — remover depois
-supabase.auth.getSession().then(({ data }) => {
-  console.log('JWT payload:', data?.session?.access_token)
-})
