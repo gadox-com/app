@@ -29,13 +29,13 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
         ${isOpen ? 'w-60' : 'w-16'} h-screen
       `}>
         {/* Logo */}
-        <div className="border-b border-gray-100 min-h-[72px] flex flex-col justify-center">
+        <div className="border-b border-gray-100 min-h-[80px] flex flex-col justify-center">
           {isOpen ? (
-            <div className="px-5 py-4 flex items-center justify-between gap-3">
+            <div className="px-4 py-4 flex items-center justify-between gap-3">
               <img
                 src={LOGO_BASE64}
                 alt="GadoX"
-                className="h-8 w-auto object-contain"
+                className="h-14 w-auto object-contain"
               />
               <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors flex-shrink-0">
                 <Menu size={15} />
@@ -46,7 +46,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
               <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
                 <Menu size={15} />
               </button>
-              <img src={FAVICON_BASE64} alt="GadoX" className="w-7 h-7 object-contain" />
+              <img src={FAVICON_BASE64} alt="GadoX" className="w-8 h-8 object-contain" />
             </div>
           )}
         </div>
