@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from './Modal'
-import { supabase } from '../lib/supabase'
+import { supabase, getFazendaId, getLocais } from '../lib/supabase'
 import { Save, AlertCircle } from 'lucide-react'
 import { registrarLog } from '../lib/log.js'
 
@@ -13,7 +13,7 @@ function calcularCategoria(nascimento, sexo) {
   if (meses <= 36) return isMacho ? 'BOI' : 'VACA'
   return isMacho ? 'TOURO' : 'VACA'
 }
-const LOCAIS = ['SARANDI', 'CASA', 'CAPANEMA']
+
 const RACAS = ['Nelore', 'Tabapuã', 'Hereford', 'Angus', 'Braford']
 
 export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
@@ -21,6 +21,18 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
   const [form, setForm] = useState({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [locais, setLocais] = useState([])
+  const [fazendaId, setFazendaId] = useState(null)
+
+  // Carrega locais e fazenda_id
+  useEffect(() => {
+    async function load() {
+      const [fid, locs] = await Promise.all([getFazendaId(), getLocais()])
+      setFazendaId(fid)
+      setLocais(locs)
+    }
+    load()
+  }, [])
 
   useEffect(() => {
     if (animal) {
@@ -29,7 +41,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         sexo: animal.sexo || 'MACHO',
         raca: animal.raca || 'Nelore',
         categoria: animal.categoria || 'NOVILHO',
-        local: animal.local || 'CASA',
+        local: animal.local || locais[0] || '',
         nascimento: animal.nascimento || '',
         peso: animal.peso || '',
         data_peso: animal.data_peso || '',
@@ -42,15 +54,14 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     } else {
       setForm({
         brinco: '', sexo: 'MACHO', raca: 'Nelore', categoria: 'NOVILHO',
-        local: 'CASA', nascimento: '', peso: '', data_peso: '', observacao: '',
-        usuario: '', status: 'ATIVO', matriz: '', cor: '',
+        local: locais[0] || '', nascimento: '', peso: '', data_peso: '',
+        observacao: '', usuario: '', status: 'ATIVO', matriz: '', cor: '',
       })
     }
     setError('')
-  }, [animal, isOpen])
+  }, [animal, isOpen, locais])
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }))
-
   const normalizeBrinco = (b) => String(parseInt(b, 10) || b.trim().toLowerCase())
   const [brincoStatus, setBrincoStatus] = useState(null)
 
@@ -71,22 +82,22 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     e.preventDefault()
     setError('')
     if (!form.brinco.trim()) return setError('Brinco é obrigatório')
+    if (!fazendaId) return setError('Erro: fazenda não identificada. Faça login novamente.')
     if (brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking') {
       return setError(`Brinco já cadastrado: animal ${brincoStatus.brinco} (${brincoStatus.raca} · ${brincoStatus.categoria} · ${brincoStatus.status})`)
     }
-
     setLoading(true)
     try {
       const catAuto = calcularCategoria(form.nascimento, form.sexo)
       const payload = {
         ...form,
+        fazenda_id: fazendaId,
         categoria: catAuto || form.categoria,
         peso: form.peso ? parseFloat(form.peso) : null,
         data_peso: form.data_peso || null,
         nascimento: form.nascimento || null,
         cor: form.cor || null,
       }
-
       let err
       if (isEdit) {
         ;({ error: err } = await supabase.from('animais').update(payload).eq('id', animal.id))
@@ -97,11 +108,9 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
       await registrarLog(
         isEdit ? 'Editou cadastro' : 'Cadastrou animal',
         `Brinco ${form.brinco} — ${form.raca} ${form.categoria}`,
-        null,
-        form.brinco
+        null, form.brinco
       )
-      onSaved()
-      onClose()
+      onSaved(); onClose()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -118,18 +127,14 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
           </div>
         )}
 
-        {/* Status toggle */}
         {isEdit && (
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
             <div>
               <div className="text-sm font-semibold text-gray-900">Status do animal</div>
               <div className="text-xs text-gray-400 mt-0.5">{form.status === 'ATIVO' ? 'Animal ativo no rebanho' : 'Animal inativo / saída registrada'}</div>
             </div>
-            <button
-              type="button"
-              onClick={() => set('status', form.status === 'ATIVO' ? 'VENDIDO' : 'ATIVO')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${form.status === 'ATIVO' ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200'}`}
-            >
+            <button type="button" onClick={() => set('status', form.status === 'ATIVO' ? 'VENDIDO' : 'ATIVO')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${form.status === 'ATIVO' ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200'}`}>
               {form.status === 'ATIVO' ? '● Ativo' : '○ Inativo'}
             </button>
           </div>
@@ -140,11 +145,10 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
             <label className="label">Brinco *</label>
             <div className="relative">
               <input
-                className={`input-field font-mono pr-8 ${brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' && brincoStatus !== null ? 'border-red-300 focus:ring-red-400' : brincoStatus === 'ok' ? 'border-green-300 focus:ring-green-400' : ''}`}
+                className={`input-field font-mono pr-8 ${brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' ? 'border-red-300 focus:ring-red-400' : brincoStatus === 'ok' ? 'border-green-300 focus:ring-green-400' : ''}`}
                 value={form.brinco}
                 onChange={e => { set('brinco', e.target.value); checkBrinco(e.target.value) }}
-                placeholder="Ex: 001"
-                required
+                placeholder="Ex: 001" required
               />
               {brincoStatus === 'checking' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">⏳</span>}
               {brincoStatus === 'ok' && form.brinco && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-xs">✓</span>}
@@ -186,7 +190,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
           <div>
             <label className="label">Local</label>
             <select className="input-field" value={form.local} onChange={e => set('local', e.target.value)}>
-              {LOCAIS.map(l => <option key={l}>{l}</option>)}
+              {locais.map(l => <option key={l}>{l}</option>)}
             </select>
           </div>
           <div>

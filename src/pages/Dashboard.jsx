@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, getNomeFazenda, getLocais } from '../lib/supabase'
 import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
@@ -32,6 +32,8 @@ export default function Dashboard({ onNavigate }) {
   const [logs, setLogs] = useState([])
   const [showAllLogs, setShowAllLogs] = useState(false)
   const [userName, setUserName] = useState('')
+  const [nomeFazenda, setNomeFazenda] = useState('GadoX')
+  const [locais, setLocais] = useState([])
   const [hora, setHora] = useState(new Date())
 
   // Atualiza o relógio a cada minuto
@@ -55,6 +57,8 @@ export default function Dashboard({ onNavigate }) {
       const name = email.split('@')[0].split('.')[0]
       setUserName(name.charAt(0).toUpperCase() + name.slice(1))
     })
+    getNomeFazenda().then(n => setNomeFazenda(n))
+    getLocais().then(l => setLocais(l))
   }, [])
 
   async function fetchLogs() {
@@ -131,7 +135,7 @@ export default function Dashboard({ onNavigate }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-400">{greeting}{userName ? `, ${userName}` : ''}</p>
-          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">GadoX</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mt-0.5">{nomeFazenda}</h1>
         </div>
         <button onClick={fetchData} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
           <RefreshCw size={15} />
@@ -248,8 +252,8 @@ export default function Dashboard({ onNavigate }) {
       {/* Fazendas */}
       <div>
         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Animais por Fazenda</p>
-        <div className="grid grid-cols-3 gap-4">
-          {[{key:'CASA',label:'Casa'},{key:'CAPANEMA',label:'Capanema'},{key:'SARANDI',label:'Sarandi'}].map(({ key, label }) => {
+        <div className={`grid gap-4 ${locais.length <= 3 ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'}`}>
+          {locais.map(loc => { const key = loc; const label = loc; return ({ key, label }) }).map(({ key, label }) => {
             const lista = ativos.filter(a => a.local === key)
             const cats = CATEGORIAS_ORDER
               .map(c => ({ cat: c, count: lista.filter(a => a.categoria === c).length }))
