@@ -26,3 +26,8 @@ export async function getNomeFazenda() {
   const { data } = await supabase.from('fazendas').select('nome').eq('id', fazendaId).single()
   return data?.nome || 'GadoX'
 }
+
+// Debug — remover depois
+supabase.auth.getSession().then(({ data }) => {
+  console.log('JWT payload:', data?.session?.access_token)
+})
