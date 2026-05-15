@@ -24,24 +24,30 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
   const [fazendaId, setFazendaId] = useState(null)
 
   useEffect(() => {
+    if (!isOpen) return
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        // Sempre busca da tabela usuario_fazenda — fonte confiável
-        const { data } = await supabase
-          .from('usuario_fazenda')
-          .select('fazenda_id')
-          .eq('user_id', user.id)
-          .single()
-        if (data?.fazenda_id) {
-          setFazendaId(data.fazenda_id)
-        }
+      if (!user) return
+      // Busca fazenda_id do usuário
+      const { data: uf } = await supabase
+        .from('usuario_fazenda')
+        .select('fazenda_id')
+        .eq('user_id', user.id)
+        .single()
+      const fid = uf?.fazenda_id
+      if (fid) {
+        setFazendaId(fid)
+        // Busca locais com o fazenda_id
+        const { data: locs } = await supabase
+          .from('locais')
+          .select('nome')
+          .eq('fazenda_id', fid)
+          .order('nome')
+        setLocais((locs || []).map(l => l.nome))
       }
-      const locs = await getLocais()
-      setLocais(locs)
     }
     load()
-  }, [])
+  }, [isOpen])
 
   useEffect(() => {
     if (animal) {
