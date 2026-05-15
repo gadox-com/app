@@ -28,7 +28,24 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #1E5A09 0%, #58C734 100%)' }}>
+    <div className="min-h-screen flex items-center justify-center p-6" style={{
+      background: 'linear-gradient(135deg, #1E5A09 0%, #58C734 60%, #2d7a10 100%)',
+      backgroundImage: [
+        'linear-gradient(135deg, #1E5A09 0%, #58C734 60%, #2d7a10 100%)',
+        'repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(255,255,255,0.04) 28px, rgba(255,255,255,0.04) 29px)',
+      ].join(', '),
+      position: 'relative',
+    }}>
+      {/* Brilho suave no canto superior direito */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 80% 10%, rgba(255,255,255,0.10) 0%, transparent 55%)',
+      }} />
+      {/* Brilho suave no canto inferior esquerdo */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 15% 90%, rgba(30,90,9,0.5) 0%, transparent 50%)',
+      }} />
       <div className="w-full max-w-4xl bg-white rounded-3xl overflow-hidden flex shadow-2xl" style={{ minHeight: '520px' }}>
 
         {/* ESQUERDA — foto */}
@@ -53,7 +70,7 @@ export default function Login({ onLogin }) {
 
           {/* Logo */}
           <div className="mb-10">
-            <img src={LOGO_BASE64} alt="GadoX" className="h-12 w-auto object-contain" />
+            <img src={LOGO_BASE64} alt="GadoX" className="h-16 w-auto object-contain" />
             <div className="w-10 h-0.5 mt-5 rounded-full" style={{ background: '#58C734' }} />
           </div>
 
