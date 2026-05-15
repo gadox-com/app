@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import Modal from './Modal'
-import { supabase, getFazendaId, getLocais } from '../lib/supabase'
+import { supabase, getLocais } from '../lib/supabase'
 import { Save, AlertCircle } from 'lucide-react'
 import { registrarLog } from '../lib/log.js'
 
@@ -27,8 +27,21 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
   // Carrega locais e fazenda_id
   useEffect(() => {
     async function load() {
-      const [fid, locs] = await Promise.all([getFazendaId(), getLocais()])
-      setFazendaId(fid)
+      const { data: { user } } = await supabase.auth.getUser()
+      // Tenta user_metadata primeiro, depois busca na tabela
+      const fidMeta = user?.user_metadata?.fazenda_id
+      if (fidMeta) {
+        setFazendaId(fidMeta)
+      } else {
+        // Fallback: busca na tabela usuario_fazenda sem RLS
+        const { data } = await supabase
+          .from('usuario_fazenda')
+          .select('fazenda_id')
+          .eq('user_id', user?.id)
+          .single()
+        setFazendaId(data?.fazenda_id || null)
+      }
+      const locs = await getLocais()
       setLocais(locs)
     }
     load()

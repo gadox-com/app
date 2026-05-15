@@ -5,10 +5,15 @@ const SUPABASE_ANON_KEY = 'sb_publishable_PwlyaWFCZnYUeBEIfvfO0w_UgK6uLpj'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-// Retorna o fazenda_id do usuário logado via tabela usuario_fazenda
+// Retorna fazenda_id — tenta user_metadata primeiro, depois tabela
 export async function getFazendaId() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+
+  // Tenta user_metadata (se foi configurado via SQL UPDATE)
+  if (user.user_metadata?.fazenda_id) return user.user_metadata.fazenda_id
+
+  // Fallback: busca na tabela usuario_fazenda
   const { data } = await supabase
     .from('usuario_fazenda')
     .select('fazenda_id')
