@@ -1,13 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-
-// ── Utilitários ───────────────────────────────────────────────────────
-const fd = (d) => {
-  if (!d) return '—'
-  const s = String(d).split('T')[0]
-  const [y, m, day] = s.split('-')
-  return `${day}/${m}/${y}`
-}
+import { Search, X, ChevronRight, MapPin, Weight, Calendar } from 'lucide-react'
+import AnimalPerfil from '../components/AnimalPerfil'
 
 function calcularCategoria(nascimento, sexo) {
   if (!nascimento) return null
@@ -19,248 +13,204 @@ function calcularCategoria(nascimento, sexo) {
   return m ? 'TOURO' : 'VACA'
 }
 
-const calcIdade = (nascimento) => {
+const idade = (nascimento) => {
   if (!nascimento) return null
   const m = Math.floor((new Date() - new Date(nascimento)) / (1000 * 60 * 60 * 24 * 30.5))
-  return m < 24 ? `${m} meses` : `${Math.floor(m / 12)} anos`
+  return m < 24 ? `${m}m` : `${Math.floor(m / 12)}a`
 }
 
-// ── Card de resultado ─────────────────────────────────────────────────
-function AnimalCard({ animal, pesos, onVerCompleto }) {
-  const cat = calcularCategoria(animal.nascimento, animal.sexo)
-
-  return (
-    <div className="flex flex-col gap-3 pb-6">
-      {/* Header laranja com brinco */}
-      <div style={{ background: 'linear-gradient(160deg, #f97316 0%, #ea6c0a 100%)' }}
-        className="px-5 pt-5 pb-10 -mx-0">
-        <button onClick={() => onVerCompleto(null)} className="flex items-center gap-1 text-white/70 text-sm font-semibold mb-3">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          Buscar outro
-        </button>
-        <div className="font-mono text-5xl font-black text-white tracking-tight leading-none">{animal.brinco}</div>
-        <div className="flex flex-wrap gap-2 mt-3">
-          <span className={`text-xs font-bold px-3 py-1 rounded-full ${animal.status === 'ATIVO' ? 'bg-green-100 text-green-700' : 'bg-white/20 text-white'}`}>
-            {animal.status === 'ATIVO' ? '● Ativo' : '○ Inativo'}
-          </span>
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/20 text-white">
-            {animal.confinado ? '⊞ Confinado' : '⊟ Solto'}
-          </span>
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-white/20 text-white">
-            {animal.sexo === 'MACHO' ? 'Macho' : 'Fêmea'}
-          </span>
-        </div>
-      </div>
-
-      {/* Card principal flutuante */}
-      <div className="mx-4 -mt-6 bg-white rounded-2xl shadow-lg overflow-hidden">
-        {/* 4 infos em grid */}
-        <div className="grid grid-cols-2 divide-x divide-y divide-gray-100">
-          {[
-            { label: 'Raça', value: animal.raca },
-            { label: 'Categoria', value: cat || animal.categoria },
-            { label: 'Local', value: animal.local },
-            { label: 'Idade', value: calcIdade(animal.nascimento) },
-          ].map(f => (
-            <div key={f.label} className="px-4 py-3">
-              <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{f.label}</div>
-              <div className="text-base font-bold text-gray-900">{f.value || '—'}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Detalhes */}
-        <div className="border-t border-gray-100">
-          {[
-            { k: 'Nascimento', v: fd(animal.nascimento) },
-            { k: 'Último Peso', v: animal.peso ? `${animal.peso} kg` : null },
-            { k: 'Data Peso', v: fd(animal.data_peso) },
-            animal.matriz ? { k: 'Matriz', v: `#${animal.matriz}`, mono: true } : null,
-          ].filter(Boolean).map(row => (
-            <div key={row.k} className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50 last:border-0">
-              <span className="text-sm text-gray-500">{row.k}</span>
-              <span className={`text-sm font-semibold text-gray-900 ${row.mono ? 'font-mono' : ''}`}>{row.v || '—'}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Pesagens */}
-      {pesos.length > 0 && (
-        <div className="mx-4 bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pesagens</span>
-            <span className="bg-orange-100 text-orange-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pesos.length}</span>
-          </div>
-          {pesos.slice(0, 4).map((p, i) => {
-            const ant = pesos[i + 1]
-            const ganho = ant ? (p.peso - ant.peso).toFixed(1) : null
-            return (
-              <div key={p.id} className="flex items-center justify-between px-4 py-3 border-b border-gray-50 last:border-0">
-                <div>
-                  <div className="text-base font-bold text-gray-900 font-mono">{p.peso} kg</div>
-                  <div className="text-xs text-gray-400">{fd(p.data_peso)}</div>
-                </div>
-                {ganho !== null && (
-                  <span className={`text-xs font-bold px-2 py-1 rounded-lg ${parseFloat(ganho) > 0 ? 'bg-orange-50 text-orange-500' : parseFloat(ganho) < 0 ? 'bg-red-50 text-red-400' : 'bg-gray-100 text-gray-400'}`}>
-                    {parseFloat(ganho) > 0 ? '+' : ''}{ganho} kg
-                  </span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Ver perfil completo */}
-      <div className="mx-4 bg-white rounded-2xl shadow-sm overflow-hidden">
-        <button onClick={() => onVerCompleto(animal.id)}
-          className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="15" x2="12" y2="15"/></svg>
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-bold text-gray-900">Ver perfil completo</div>
-              <div className="text-xs text-gray-400">Editar, fotos, observações</div>
-            </div>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ── Principal ─────────────────────────────────────────────────────────
 export default function BuscaRapida({ onNavigate }) {
-  const [brinco, setBrinco] = useState('')
-  const [animal, setAnimal] = useState(null)
-  const [pesos, setPesos] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [notFound, setNotFound] = useState(false)
-  const [recentes, setRecentes] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('buscaRecente') || '[]') } catch { return [] }
-  })
+  const [query, setQuery] = useState('')
+  const [resultados, setResultados] = useState([])
+  const [todos, setTodos] = useState([])
+  const [carregou, setCarregou] = useState(false)
+  const [perfilId, setPerfilId] = useState(null)
   const inputRef = useRef(null)
 
-  useEffect(() => { inputRef.current?.focus() }, [])
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from('animais')
+        .select('id, brinco, raca, sexo, nascimento, peso, local, status, confinado, matriz, categoria, cor')
+        .order('brinco')
+      setTodos(data || [])
+      setCarregou(true)
+    }
+    load()
+    setTimeout(() => inputRef.current?.focus(), 400)
+  }, [])
 
   useEffect(() => {
-    if (!brinco.trim()) { setAnimal(null); setPesos([]); setNotFound(false); return }
-    const timer = setTimeout(() => buscar(brinco.trim()), 350)
-    return () => clearTimeout(timer)
-  }, [brinco])
+    if (!query.trim()) { setResultados([]); return }
+    const q = query.trim().toLowerCase()
+    const norm = (b) => String(parseInt(b, 10) || b.toLowerCase())
+    const found = todos.filter(a =>
+      norm(String(a.brinco)).startsWith(norm(q)) ||
+      String(a.brinco).toLowerCase().includes(q)
+    ).slice(0, 20)
+    setResultados(found)
+  }, [query, todos])
 
-  async function buscar(val) {
-    setLoading(true); setNotFound(false)
-    const norm = String(parseInt(val, 10))
-    const { data: todos } = await supabase.from('animais').select('*')
-    const found = (todos || []).find(a => String(parseInt(a.brinco, 10)) === norm)
-    if (found) {
-      setAnimal(found)
-      const { data: p } = await supabase.from('peso_historico').select('*').eq('animal_id', found.id).order('data_peso', { ascending: false })
-      setPesos(p || [])
-      // Salvar nos recentes
-      const novo = { id: found.id, brinco: found.brinco, raca: found.raca, categoria: found.categoria, local: found.local }
-      const atualizados = [novo, ...recentes.filter(r => r.brinco !== found.brinco)].slice(0, 5)
-      setRecentes(atualizados)
-      localStorage.setItem('buscaRecente', JSON.stringify(atualizados))
-    } else {
-      setAnimal(null); setPesos([]); setNotFound(true)
-    }
-    setLoading(false)
-  }
-
-  function verCompleto(id) {
-    if (!id) { setAnimal(null); setBrinco(''); return }
-    // Navega para animais e abre o perfil
-    localStorage.setItem('openAnimalId', id)
-    onNavigate('animais')
-  }
+  const limpar = () => { setQuery(''); setResultados([]); inputRef.current?.focus() }
 
   return (
-    <div className="min-h-screen" style={{ background: '#f2f2f7' }}>
+    <>
+      <div className="flex flex-col h-screen overflow-hidden">
 
-      {animal ? (
-        <AnimalCard animal={animal} pesos={pesos} onVerCompleto={verCompleto} />
-      ) : (
-        <div className="flex flex-col">
-          {/* Header */}
-          <div style={{ background: 'linear-gradient(160deg, #f97316 0%, #ea6c0a 100%)' }}
-            className="px-5 pt-10 pb-12 text-center">
-            <div className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Fazenda São Brás</div>
-            <h1 className="text-2xl font-black text-white">Consulta de Animais</h1>
-            <p className="text-sm text-white/75 mt-1">Digite o brinco para buscar</p>
-          </div>
+        {/* TOPO — metade laranja com campo de busca */}
+        <div className="flex-shrink-0 relative" style={{
+          background: 'linear-gradient(160deg, #f97316 0%, #fb923c 100%)',
+          paddingTop: 'env(safe-area-inset-top, 16px)',
+        }}>
+          {/* Círculos decorativos */}
+          <div style={{ position:'absolute', width:220, height:220, borderRadius:'50%', border:'1px solid rgba(255,255,255,0.12)', top:-80, right:-60, pointerEvents:'none' }} />
+          <div style={{ position:'absolute', width:140, height:140, borderRadius:'50%', border:'1px solid rgba(255,255,255,0.08)', top:20, right:60, pointerEvents:'none' }} />
 
-          {/* Campo busca flutuante */}
-          <div className="mx-4 -mt-7 bg-white rounded-2xl shadow-xl p-5 relative z-10">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Número do Brinco</div>
-            <div className={`flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border-2 transition-colors ${brinco ? 'border-orange-300' : 'border-gray-100'}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          <div className="px-5 pt-6 pb-8 relative z-10">
+            {/* Header */}
+            <div className="mb-6">
+              <p className="text-orange-200 text-xs font-semibold uppercase tracking-widest mb-1">GadoX</p>
+              <h1 className="text-white text-3xl font-black tracking-tight leading-none">Busca Rápida</h1>
+              <p className="text-orange-200 text-sm mt-1">
+                {carregou ? `${todos.length} animais carregados` : 'Carregando...'}
+              </p>
+            </div>
+
+            {/* Campo de busca */}
+            <div className="relative">
+              <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-300 pointer-events-none" />
               <input
                 ref={inputRef}
                 type="number"
                 inputMode="numeric"
-                className="flex-1 bg-transparent outline-none font-mono font-black text-gray-900 placeholder-gray-300"
-                style={{ fontSize: 32, letterSpacing: -1 }}
-                placeholder="000"
-                value={brinco}
-                onChange={e => setBrinco(e.target.value)}
+                pattern="[0-9]*"
+                className="w-full pl-12 pr-12 py-4 text-2xl font-black font-mono rounded-2xl bg-white/20 backdrop-blur-sm border-2 border-white/30 text-white placeholder-orange-200 focus:outline-none focus:bg-white/30 focus:border-white/60 transition-all"
+                placeholder="Digite o brinco..."
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                autoComplete="off"
+                style={{ caretColor: 'white' }}
               />
-              {loading && <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />}
-              {brinco && !loading && (
-                <button onClick={() => setBrinco('')} className="text-gray-300 hover:text-gray-500 flex-shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {query && (
+                <button onClick={limpar} className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-200 hover:text-white transition-colors">
+                  <X size={20} />
                 </button>
               )}
             </div>
-            {notFound && brinco && (
-              <p className="text-sm text-red-400 font-semibold mt-2.5 text-center">Brinco #{brinco} não encontrado</p>
-            )}
-            {!notFound && !brinco && (
-              <p className="text-xs text-gray-400 text-center mt-2">O resultado aparece automaticamente</p>
+
+            {/* Contagem de resultados */}
+            {query && (
+              <p className="text-orange-200 text-xs mt-2.5 ml-1">
+                {resultados.length === 0
+                  ? 'Nenhum animal encontrado'
+                  : `${resultados.length} animal${resultados.length > 1 ? 'is' : ''} encontrado${resultados.length > 1 ? 's' : ''}`}
+              </p>
             )}
           </div>
 
-          {/* Recentes */}
-          {recentes.length > 0 && (
-            <div className="mx-4 mt-5">
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2.5 px-1">Consultados recentemente</div>
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                {recentes.map((r, i) => (
-                  <button key={r.brinco} onClick={() => setBrinco(r.brinco)}
-                    className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-lg font-black text-gray-900">#{r.brinco}</span>
-                      <span className="text-sm text-gray-400">{r.raca} · {r.categoria} · {r.local}</span>
-                    </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                  </button>
-                ))}
+          {/* Curva na base do header */}
+          <div style={{
+            position: 'absolute', bottom: -24, left: 0, right: 0, height: 48,
+            background: '#f8f9fa', borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
+            zIndex: 1,
+          }} />
+        </div>
+
+        {/* CORPO — resultados */}
+        <div className="flex-1 overflow-y-auto bg-gray-50 pt-4 pb-24">
+
+          {/* Estado inicial */}
+          {!query && (
+            <div className="flex flex-col items-center justify-center h-full text-center px-8 pb-16">
+              <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center mb-5">
+                <Search size={32} className="text-orange-300" />
               </div>
+              <p className="text-lg font-bold text-gray-400">Digite o número do brinco</p>
+              <p className="text-sm text-gray-300 mt-1">A busca é instantânea</p>
             </div>
           )}
 
-          {/* Acesso completo */}
-          <div className="mx-4 mt-4 bg-white rounded-2xl shadow-sm overflow-hidden">
-            <button onClick={() => onNavigate('dashboard')}
-              className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-bold text-gray-900">Acesso Completo</div>
-                  <div className="text-xs text-gray-400">Dashboard, relatórios e edição</div>
-                </div>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ddd" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-          </div>
+          {/* Resultados */}
+          {resultados.length > 0 && (
+            <div className="px-4 space-y-3">
+              {resultados.map(animal => {
+                const cat = calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria
+                const ativo = animal.status === 'ATIVO'
+                const id = idade(animal.nascimento)
+
+                return (
+                  <button
+                    key={animal.id}
+                    onClick={() => setPerfilId(animal.id)}
+                    className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-left transition-all active:scale-95"
+                  >
+                    {/* Linha topo */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-2xl font-black text-gray-900">#{animal.brinco}</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                          {ativo ? '● Ativo' : '○ Inativo'}
+                        </span>
+                        {animal.confinado && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">Confinado</span>}
+                      </div>
+                      <ChevronRight size={18} className="text-orange-300 flex-shrink-0" />
+                    </div>
+
+                    {/* Raça + categoria + sexo + cor */}
+                    <div className="flex items-center gap-2 flex-wrap mb-3">
+                      <span className="text-sm font-bold text-gray-800">{animal.raca}</span>
+                      <span className="text-gray-300">·</span>
+                      <span className="text-sm font-bold text-orange-500">{cat}</span>
+                      <span className="text-gray-300">·</span>
+                      <span className="text-sm text-gray-500">{animal.sexo === 'MACHO' ? '♂' : '♀'}</span>
+                      {animal.cor && <><span className="text-gray-300">·</span><span className="text-sm text-gray-400">{animal.cor}</span></>}
+                    </div>
+
+                    {/* Grid de info */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-orange-50 rounded-xl p-2.5">
+                        <div className="text-[9px] font-bold text-orange-300 uppercase tracking-wider mb-0.5 flex items-center gap-0.5"><MapPin size={8} /> Local</div>
+                        <div className="text-sm font-black text-gray-800">{animal.local || '—'}</div>
+                      </div>
+                      <div className="bg-orange-50 rounded-xl p-2.5">
+                        <div className="text-[9px] font-bold text-orange-300 uppercase tracking-wider mb-0.5 flex items-center gap-0.5"><Weight size={8} /> Peso</div>
+                        <div className="text-sm font-black text-gray-800">{animal.peso ? `${animal.peso}kg` : '—'}</div>
+                      </div>
+                      <div className="bg-orange-50 rounded-xl p-2.5">
+                        <div className="text-[9px] font-bold text-orange-300 uppercase tracking-wider mb-0.5 flex items-center gap-0.5"><Calendar size={8} /> Idade</div>
+                        <div className="text-sm font-black text-gray-800">{id || '—'}</div>
+                      </div>
+                    </div>
+
+                    {animal.matriz && (
+                      <div className="mt-2.5 text-xs text-gray-400">
+                        Matriz: <span className="font-mono font-bold text-gray-600">#{animal.matriz}</span>
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Não encontrado */}
+          {query && resultados.length === 0 && carregou && (
+            <div className="flex flex-col items-center justify-center h-48 text-center px-8">
+              <p className="text-5xl mb-3">🔍</p>
+              <p className="text-base font-bold text-gray-400">Brinco {query} não encontrado</p>
+              <p className="text-sm text-gray-300 mt-1">Verifique o número</p>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
+
+      {/* Perfil completo ao clicar */}
+      <AnimalPerfil
+        isOpen={!!perfilId}
+        onClose={() => setPerfilId(null)}
+        animalId={perfilId}
+        onSaved={() => {}}
+      />
+    </>
   )
 }

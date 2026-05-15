@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Home, Syringe, ShoppingCart,
-  BarChart3, Menu, Beef, LogOut,
+  BarChart3, Menu, Beef, LogOut, Search,
 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { LOGO_BASE64 } from '../assets/logo.js'
@@ -8,6 +8,7 @@ import { FAVICON_BASE64 } from '../assets/favicon.js'
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'busca',     label: 'Busca Rápida', icon: Search },
   { id: 'animais',   label: 'Animais',   icon: Beef },
   { id: 'confinamento', label: 'Confinamento', icon: Home },
   { id: 'reproducao',  label: 'Reprodução',   icon: Syringe },
