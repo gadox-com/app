@@ -28,7 +28,7 @@ export default function Login({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <div className="min-h-screen flex bg-gray-100">
 
       {/* ESQUERDA — imagem */}
       <div className="hidden lg:block w-[45%] flex-shrink-0 relative overflow-hidden rounded-r-3xl">
@@ -49,7 +49,7 @@ export default function Login({ onLogin }) {
       </div>
 
       {/* DIREITA — formulário */}
-      <div className="flex-1 flex items-center justify-center px-8 py-12">
+      <div className="flex-1 flex items-center justify-center px-8 py-12 bg-white">
         <div className="w-full max-w-sm">
 
           {/* Logo */}
