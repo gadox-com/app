@@ -6,7 +6,6 @@ import { useRole } from '../lib/role.jsx'
 import ConfinamentoModal from './ConfinamentoModal'
 import ReproducaoModal from './ReproducaoModal'
 
-// ── Utilitários ───────────────────────────────────────────────────────
 const fd = (d) => {
   if (!d) return '—'
   const s = String(d).split('T')[0]
@@ -52,7 +51,6 @@ async function compressImage(file) {
   })
 }
 
-// ── Save icon ─────────────────────────────────────────────────────────
 const SaveIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -61,7 +59,6 @@ const SaveIcon = () => (
   </svg>
 )
 
-// ── Fence icon ────────────────────────────────────────────────────────
 const FenceIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="4" y1="3" x2="4" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/>
@@ -70,7 +67,6 @@ const FenceIcon = () => (
   </svg>
 )
 
-// ── Info row estilo iOS ───────────────────────────────────────────────
 function InfoRow({ label, value, mono = false }) {
   if (!value || value === '—') return (
     <div className="flex items-center justify-between py-2.5 px-3.5 border-b border-gray-100 last:border-0">
@@ -86,7 +82,6 @@ function InfoRow({ label, value, mono = false }) {
   )
 }
 
-// ── Modal baixa ───────────────────────────────────────────────────────
 function BaixaModal({ animal, onConfirm, onClose }) {
   const [motivo, setMotivo] = useState('Morte')
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
@@ -128,7 +123,6 @@ function BaixaModal({ animal, onConfirm, onClose }) {
   )
 }
 
-// ── Modal venda ───────────────────────────────────────────────────────
 function VendaModal({ animal, onConfirm, onClose }) {
   const [preco, setPreco] = useState('')
   const [peso, setPeso] = useState(animal?.peso || '')
@@ -165,7 +159,6 @@ function VendaModal({ animal, onConfirm, onClose }) {
   )
 }
 
-// ── Principal ─────────────────────────────────────────────────────────
 export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onRequestEdit }) {
   const { isViewer } = useRole()
   const [animal, setAnimal] = useState(null)
@@ -204,7 +197,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
       supabase.from('observacoes_animal').select('*').eq('animal_id', animalId).order('created_at', { ascending: false }),
     ])
     setAnimal(a); setPesos(p || []); setObservacoes(o || [])
-    // Buscar filhos: animais cuja matriz == brinco deste animal
     if (a) {
       const { data: f } = await supabase
         .from('animais')
@@ -334,7 +326,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
             </div>
           ) : (
             <>
-              {/* ── HEADER ── */}
+              {/* HEADER */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -384,13 +376,10 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                 </div>
               </div>
 
-              {/* ── BODY ── */}
+              {/* BODY */}
               <div className="flex flex-1 overflow-hidden">
-
-                {/* ESQUERDA */}
                 <div className="w-1/2 border-r border-gray-100 flex flex-col overflow-hidden">
 
-                  {/* Hero — 4 campos em destaque */}
                   <div className="px-5 py-4 flex-shrink-0" style={{ background: 'linear-gradient(160deg, #fff7ed 0%, #ffffff 60%)' }}>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                       {[
@@ -407,7 +396,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                     </div>
                   </div>
 
-                  {/* Lista detalhes estilo iOS */}
                   <div className="px-5 py-3 flex-shrink-0">
                     <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2">Detalhes</div>
                     <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
@@ -426,6 +414,8 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                           </button>
                         </div>
                       )}
+                      {animal.cor && <InfoRow label="Cor" value={animal.cor} />}
+                      {animal.cor && <InfoRow label="Cor" value={animal.cor} />}
                       <InfoRow label="Confinado" value={animal.confinado ? 'Sim' : 'Não'} />
                       {animal.status === 'VENDIDO' && <>
                         <InfoRow label="Data de Saída" value={fd(animal.saida)} />
@@ -439,7 +429,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                     </div>
                   </div>
 
-                  {/* Filhos da matriz */}
                   {filhos.length > 0 && (
                     <div className="px-5 pb-2">
                       <div className="flex items-center gap-2 mb-1.5">
@@ -448,7 +437,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                       </div>
                       <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
                         {filhos.map((f, i) => (
-                          <button key={f.id} onClick={() => { setAnimal(null); setLoading(true); setTimeout(() => { /* reuse same modal */ }, 0); onClose(); setTimeout(() => { document.dispatchEvent(new CustomEvent('openAnimal', { detail: f.id })) }, 100) }}
+                          <button key={f.id} onClick={() => { setAnimal(null); setLoading(true); onClose(); setTimeout(() => { document.dispatchEvent(new CustomEvent('openAnimal', { detail: f.id })) }, 100) }}
                             className="w-full flex items-center gap-2 px-3 py-2 hover:bg-orange-50 transition-colors border-b border-gray-100 last:border-0 text-left">
                             {i === 0 && <span className="text-[9px] font-bold text-orange-400 bg-orange-100 px-1.5 py-0.5 rounded flex-shrink-0">Recente</span>}
                             <span className="font-mono font-bold text-gray-900 text-sm flex-shrink-0">#{f.brinco}</span>
@@ -463,7 +452,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                     </div>
                   )}
 
-                  {/* Observações */}
                   <div className="px-5 py-3 flex flex-col flex-1 overflow-hidden">
                     <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                       <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Observações</span>
@@ -497,10 +485,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                   </div>
                 </div>
 
-                {/* DIREITA */}
                 <div className="w-1/2 flex flex-col">
-
-                  {/* Foto */}
                   <div className="flex flex-col px-5 py-4 border-b border-gray-100" style={{ height: '52%' }}>
                     <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-2.5 flex-shrink-0">Foto</div>
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
@@ -527,7 +512,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                     {fotoError && <p className="text-xs text-red-500 mt-1.5 flex-shrink-0">{fotoError}</p>}
                   </div>
 
-                  {/* Pesagens */}
                   <div className="flex flex-col px-5 py-4 flex-1 overflow-hidden">
                     <div className="flex items-center gap-2 mb-2.5 flex-shrink-0">
                       <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Pesagens</span>
@@ -578,7 +562,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                 </div>
               </div>
 
-              {/* FOOTER */}
               <div className="flex justify-end px-5 py-2.5 border-t border-gray-100 flex-shrink-0 bg-gray-50/50">
                 <button onClick={onClose} className="px-6 py-1.5 bg-gray-900 hover:bg-gray-700 text-white text-xs font-bold rounded-lg transition-colors tracking-wide">OK</button>
               </div>
