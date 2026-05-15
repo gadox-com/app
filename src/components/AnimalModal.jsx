@@ -36,6 +36,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         .eq('user_id', user.id)
         .single()
       const fid = uf?.fazenda_id
+      console.log('usuario_fazenda result:', uf, 'fid:', fid)
       if (fid) {
         setFazendaId(fid)
         // Busca locais com o fazenda_id
@@ -99,6 +100,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     e.preventDefault()
     setError('')
     if (!form.brinco.trim()) return setError('Brinco é obrigatório')
+    console.log('submit fazendaId:', fazendaId)
     if (!fazendaId) return setError('Erro: fazenda não identificada. Recarregue a página.')
     if (brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking') {
       return setError(`Brinco já cadastrado: animal ${brincoStatus.brinco} (${brincoStatus.raca} · ${brincoStatus.categoria} · ${brincoStatus.status})`)
