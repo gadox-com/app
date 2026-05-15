@@ -30,20 +30,21 @@ export default function Login({ onLogin }) {
   return (
     <div className="min-h-screen flex bg-gray-100" style={{ backgroundColor: "#f3f4f6" }}>
 
-      {/* ESQUERDA — imagem */}
-      <div className="hidden lg:block w-[45%] flex-shrink-0 relative overflow-hidden rounded-r-3xl">
-        <img
-          src={FAZENDA_BG}
-          alt="GadoX"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-black/20" />
-
-        {/* Badge inferior */}
-        <div className="absolute bottom-10 left-10">
-          <div className="inline-flex items-center gap-2.5 bg-white/15 backdrop-blur-sm border border-white/25 px-4 py-2.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 animate-pulse" />
-            <span className="text-white text-sm font-semibold">Gestão de Gado</span>
+      {/* ESQUERDA — imagem em card flutuante */}
+      <div className="hidden lg:flex w-[50%] flex-shrink-0 items-center justify-center" style={{ padding: '100px 100px 100px 100px' }}>
+        <div className="relative w-full h-full rounded-3xl overflow-hidden shadow-xl">
+          <img
+            src={FAZENDA_BG}
+            alt="GadoX"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/25" />
+          {/* Badge inferior */}
+          <div className="absolute bottom-8 left-8">
+            <div className="inline-flex items-center gap-2.5 bg-white/15 backdrop-blur-sm border border-white/25 px-4 py-2.5 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 animate-pulse" />
+              <span className="text-white text-sm font-semibold">Gestão de Gado</span>
+            </div>
           </div>
         </div>
       </div>
