@@ -37,11 +37,13 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         usuario: animal.usuario || '',
         status: animal.status || 'ATIVO',
         matriz: animal.matriz || '',
+        cor: animal.cor || '',
       })
     } else {
       setForm({
         brinco: '', sexo: 'MACHO', raca: 'Nelore', categoria: 'NOVILHO',
-        local: 'CASA', nascimento: '', peso: '', data_peso: '', observacao: '', usuario: ''
+        local: 'CASA', nascimento: '', peso: '', data_peso: '', observacao: '',
+        usuario: '', status: 'ATIVO', matriz: '', cor: '',
       })
     }
     setError('')
@@ -49,10 +51,8 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }))
 
-  // Normaliza brinco: remove zeros à esquerda para comparar (2 == 002 == 02)
   const normalizeBrinco = (b) => String(parseInt(b, 10) || b.trim().toLowerCase())
-
-  const [brincoStatus, setBrincoStatus] = useState(null) // null | 'checking' | 'ok' | 'duplicado' | { brinco, id }
+  const [brincoStatus, setBrincoStatus] = useState(null)
 
   async function checkBrinco(valor) {
     if (!valor.trim()) { setBrincoStatus(null); return }
@@ -61,7 +61,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     if (!data) { setBrincoStatus('ok'); return }
     const normalAtual = normalizeBrinco(valor)
     const match = data.find(a => {
-      if (isEdit && a.id === animal.id) return false // ignora o próprio ao editar
+      if (isEdit && a.id === animal.id) return false
       return normalizeBrinco(a.brinco) === normalAtual
     })
     setBrincoStatus(match ? match : 'ok')
@@ -78,14 +78,13 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     setLoading(true)
     try {
       const catAuto = calcularCategoria(form.nascimento, form.sexo)
-      // update local too if status changed to VENDIDO
-      const localFinal = form.status === 'VENDIDO' && form.local !== 'VENDIDO' ? form.local : form.local
       const payload = {
         ...form,
         categoria: catAuto || form.categoria,
         peso: form.peso ? parseFloat(form.peso) : null,
         data_peso: form.data_peso || null,
         nascimento: form.nascimento || null,
+        cor: form.cor || null,
       }
 
       let err
@@ -119,7 +118,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
           </div>
         )}
 
-        {/* Status toggle — só aparece ao editar */}
+        {/* Status toggle */}
         {isEdit && (
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
             <div>
@@ -147,15 +146,9 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
                 placeholder="Ex: 001"
                 required
               />
-              {brincoStatus === 'checking' && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">⏳</span>
-              )}
-              {brincoStatus === 'ok' && form.brinco && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-xs">✓</span>
-              )}
-              {brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 text-xs">✗</span>
-              )}
+              {brincoStatus === 'checking' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">⏳</span>}
+              {brincoStatus === 'ok' && form.brinco && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-xs">✓</span>}
+              {brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 text-xs">✗</span>}
             </div>
             {brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' && (
               <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
@@ -213,9 +206,15 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
           </div>
         </div>
 
-        <div>
-          <label className="label">Matriz (Brinco da Mãe)</label>
-          <input className="input-field font-mono" value={form.matriz} onChange={e => set('matriz', e.target.value)} placeholder="Ex: 452" />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="label">Matriz (Brinco da Mãe)</label>
+            <input className="input-field font-mono" value={form.matriz} onChange={e => set('matriz', e.target.value)} placeholder="Ex: 452" />
+          </div>
+          <div>
+            <label className="label">Cor</label>
+            <input className="input-field" value={form.cor} onChange={e => set('cor', e.target.value)} placeholder="Ex: Amarela, Preta, Malhada..." />
+          </div>
         </div>
 
         <div>
