@@ -29,11 +29,20 @@ export default function BuscaRapida({ onNavigate }) {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from('animais')
-        .select('id, brinco, raca, sexo, nascimento, peso, local, status, confinado, matriz, categoria, cor')
-        .order('brinco')
-      setTodos(data || [])
+      // Busca todos sem limite — ativos e inativos
+      let all = []
+      let from = 0
+      while (true) {
+        const { data } = await supabase
+          .from('animais')
+          .select('id, brinco, raca, sexo, nascimento, peso, local, status, confinado, matriz, categoria, cor')
+          .order('brinco')
+          .range(from, from + 999)
+        all = [...all, ...(data || [])]
+        if (!data || data.length < 1000) break
+        from += 1000
+      }
+      setTodos(all)
       setCarregou(true)
     }
     load()
