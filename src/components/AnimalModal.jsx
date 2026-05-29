@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from './Modal'
-import { supabase } from '../lib/supabase'
+import { supabase, getLocais } from '../lib/supabase'
 import { Save, AlertCircle } from 'lucide-react'
 import { registrarLog } from '../lib/log.js'
 
@@ -13,14 +13,44 @@ function calcularCategoria(nascimento, sexo) {
   if (meses <= 36) return isMacho ? 'BOI' : 'VACA'
   return isMacho ? 'TOURO' : 'VACA'
 }
-const LOCAIS = ['SARANDI', 'CASA', 'CAPANEMA']
-const RACAS = ['Nelore', 'Tabapuã', 'Hereford', 'Angus', 'Braford']
 
+const RACAS = ['Nelore', 'Tabapuã', 'Hereford', 'Angus', 'Braford']
 export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
   const isEdit = !!animal?.id
   const [form, setForm] = useState({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [locais, setLocais] = useState([])
+  const [fazendaId, setFazendaId] = useState(null)
+  const [loadingFazenda, setLoadingFazenda] = useState(true)
+
+  useEffect(() => {
+    if (!isOpen) return
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      // Busca fazenda_id do usuário
+      const { data: uf } = await supabase
+        .from('usuario_fazenda')
+        .select('fazenda_id')
+        .eq('user_id', user.id)
+        .single()
+      const fid = uf?.fazenda_id
+      console.log('usuario_fazenda result:', uf, 'fid:', fid)
+      if (fid) {
+        setFazendaId(fid)
+        // Busca locais com o fazenda_id
+        const { data: locs } = await supabase
+          .from('locais')
+          .select('nome')
+          .eq('fazenda_id', fid)
+          .order('nome')
+        setLocais((locs || []).map(l => l.nome))
+      }
+      setLoadingFazenda(false)
+    }
+    load()
+  }, [isOpen])
 
   useEffect(() => {
     if (animal) {
@@ -29,8 +59,10 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         sexo: animal.sexo || 'MACHO',
         raca: animal.raca || 'Nelore',
         categoria: animal.categoria || 'NOVILHO',
-        local: animal.local || 'CASA',
+        local: animal.local || locais[0] || '',
         nascimento: animal.nascimento || '',
+        peso: animal.peso || '',
+        data_peso: animal.data_peso || '',
         observacao: animal.observacao || '',
         usuario: animal.usuario || '',
         status: animal.status || 'ATIVO',
@@ -40,15 +72,14 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     } else {
       setForm({
         brinco: '', sexo: 'MACHO', raca: 'Nelore', categoria: 'NOVILHO',
-        local: 'CASA', nascimento: '', observacao: '',
-        usuario: '', status: 'ATIVO', matriz: '', cor: '',
+        local: locais[0] || '', nascimento: '', peso: '', data_peso: '',
+        observacao: '', usuario: '', status: 'ATIVO', matriz: '', cor: '',
       })
     }
     setError('')
-  }, [animal, isOpen])
+  }, [animal, isOpen, locais])
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }))
-
   const normalizeBrinco = (b) => String(parseInt(b, 10) || b.trim().toLowerCase())
   const [brincoStatus, setBrincoStatus] = useState(null)
 
@@ -69,20 +100,23 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     e.preventDefault()
     setError('')
     if (!form.brinco.trim()) return setError('Brinco é obrigatório')
+    console.log('submit fazendaId:', fazendaId)
+    if (!fazendaId) return setError('Erro: fazenda não identificada. Recarregue a página.')
     if (brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking') {
       return setError(`Brinco já cadastrado: animal ${brincoStatus.brinco} (${brincoStatus.raca} · ${brincoStatus.categoria} · ${brincoStatus.status})`)
     }
-
     setLoading(true)
     try {
       const catAuto = calcularCategoria(form.nascimento, form.sexo)
       const payload = {
         ...form,
+        fazenda_id: fazendaId,
         categoria: catAuto || form.categoria,
+        peso: form.peso ? parseFloat(form.peso) : null,
+        data_peso: form.data_peso || null,
         nascimento: form.nascimento || null,
         cor: form.cor || null,
       }
-
       let err
       if (isEdit) {
         ;({ error: err } = await supabase.from('animais').update(payload).eq('id', animal.id))
@@ -93,11 +127,9 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
       await registrarLog(
         isEdit ? 'Editou cadastro' : 'Cadastrou animal',
         `Brinco ${form.brinco} — ${form.raca} ${form.categoria}`,
-        null,
-        form.brinco
+        null, form.brinco
       )
-      onSaved()
-      onClose()
+      onSaved(); onClose()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -114,18 +146,14 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
           </div>
         )}
 
-        {/* Status toggle */}
         {isEdit && (
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
             <div>
               <div className="text-sm font-semibold text-gray-900">Status do animal</div>
-              <div className="text-xs text-gray-500 mt-0.5">{form.status === 'ATIVO' ? 'Animal ativo no rebanho' : 'Animal inativo / saída registrada'}</div>
+              <div className="text-xs text-gray-400 mt-0.5">{form.status === 'ATIVO' ? 'Animal ativo no rebanho' : 'Animal inativo / saída registrada'}</div>
             </div>
-            <button
-              type="button"
-              onClick={() => set('status', form.status === 'ATIVO' ? 'VENDIDO' : 'ATIVO')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${form.status === 'ATIVO' ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}
-            >
+            <button type="button" onClick={() => set('status', form.status === 'ATIVO' ? 'VENDIDO' : 'ATIVO')}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all ${form.status === 'ATIVO' ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100' : 'bg-gray-100 text-gray-400 border-gray-200 hover:bg-gray-200'}`}>
               {form.status === 'ATIVO' ? '● Ativo' : '○ Inativo'}
             </button>
           </div>
@@ -136,13 +164,12 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
             <label className="label">Brinco *</label>
             <div className="relative">
               <input
-                className={`input-field font-mono pr-8 ${brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' && brincoStatus !== null ? 'border-red-300 focus:ring-red-400' : brincoStatus === 'ok' ? 'border-green-300 focus:ring-green-400' : ''}`}
+                className={`input-field font-mono pr-8 ${brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' ? 'border-red-300 focus:ring-red-400' : brincoStatus === 'ok' ? 'border-green-300 focus:ring-green-400' : ''}`}
                 value={form.brinco}
                 onChange={e => { set('brinco', e.target.value); checkBrinco(e.target.value) }}
-                placeholder="Ex: 001"
-                required
+                placeholder="Ex: 001" required
               />
-              {brincoStatus === 'checking' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">⏳</span>}
+              {brincoStatus === 'checking' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">⏳</span>}
               {brincoStatus === 'ok' && form.brinco && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-xs">✓</span>}
               {brincoStatus && brincoStatus !== 'ok' && brincoStatus !== 'checking' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 text-xs">✗</span>}
             </div>
@@ -182,7 +209,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
           <div>
             <label className="label">Local</label>
             <select className="input-field" value={form.local} onChange={e => set('local', e.target.value)}>
-              {LOCAIS.map(l => <option key={l}>{l}</option>)}
+              {locais.length > 0 ? locais.map(l => <option key={l}>{l}</option>) : <option>Carregando...</option>}
             </select>
           </div>
           <div>
@@ -193,15 +220,18 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <label className="label mb-0">Matriz (Brinco da Mãe)</label>
-              <div className="relative group">
-                <span className="w-4 h-4 rounded-full bg-gray-200 text-gray-500 text-[10px] font-bold flex items-center justify-center cursor-help">?</span>
-                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 w-48 text-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 leading-relaxed">
-                  Número do brinco da mãe deste animal. Deixe em branco se desconhecido.
-                </div>
-              </div>
-            </div>
+            <label className="label">Peso (kg)</label>
+            <input type="number" step="0.1" className="input-field" value={form.peso} onChange={e => set('peso', e.target.value)} placeholder="0.0" />
+          </div>
+          <div>
+            <label className="label">Data do Peso</label>
+            <input type="date" className="input-field" value={form.data_peso} onChange={e => set('data_peso', e.target.value)} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="label">Matriz (Brinco da Mãe)</label>
             <input className="input-field font-mono" value={form.matriz} onChange={e => set('matriz', e.target.value)} placeholder="Ex: 452" />
           </div>
           <div>
@@ -217,7 +247,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
 
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="btn-primary" disabled={loading || loadingFazenda}>
             <Save size={15} />
             {loading ? 'Salvando...' : isEdit ? 'Atualizar' : 'Cadastrar'}
           </button>

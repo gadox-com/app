@@ -2,20 +2,9 @@ import {
   LayoutDashboard, Home, Syringe, ShoppingCart,
   BarChart3, Menu, Beef, LogOut, Search,
 } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { LOGO_BASE64 } from '../assets/logo.js'
 import { FAVICON_BASE64 } from '../assets/favicon.js'
-
-const PAGE_TO_ROUTE = {
-  dashboard: '/dashboard',
-  busca: '/busca-rapida',
-  animais: '/animais',
-  confinamento: '/confinamento',
-  reproducao: '/reproducao',
-  vendas: '/vendas',
-  relatorios: '/relatorios',
-}
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -41,24 +30,24 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
         ${isOpen ? 'w-60' : 'w-16'} h-screen
       `}>
         {/* Logo */}
-        <div className="border-b border-gray-100 min-h-[96px] flex flex-col justify-center">
+        <div className="border-b border-gray-100 min-h-[80px] flex flex-col justify-center">
           {isOpen ? (
             <div className="px-4 py-4 flex items-center justify-between gap-3">
               <img
                 src={LOGO_BASE64}
                 alt="GadoX"
-                className="h-20 w-auto object-contain"
+                className="h-14 w-auto object-contain"
               />
-              <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0">
+              <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors flex-shrink-0">
                 <Menu size={15} />
               </button>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-3 gap-2">
-              <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
+              <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
                 <Menu size={15} />
               </button>
-              <img src={FAVICON_BASE64} alt="GadoX" className="w-12 h-12 object-contain" />
+              <img src={FAVICON_BASE64} alt="GadoX" className="w-8 h-8 object-contain" />
             </div>
           )}
         </div>
@@ -69,13 +58,13 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
             const Icon = item.icon
             const isActive = currentPage === item.id
             return (
-              <Link
+              <button
                 key={item.id}
-                to={PAGE_TO_ROUTE[item.id]}
+                onClick={() => onNavigate(item.id)}
                 title={!isOpen ? item.label : ''}
                 className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-                  transition-all duration-150 no-underline
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                  transition-all duration-150
                   ${isActive ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
                   ${!isOpen ? 'justify-center' : ''}
                 `}
@@ -83,7 +72,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
                 <Icon size={18} className="flex-shrink-0" />
                 {isOpen && <span className="truncate">{item.label}</span>}
                 {isOpen && isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-orange-500" />}
-              </Link>
+              </button>
             )
           })}
         </nav>
@@ -94,14 +83,14 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
             <div className="flex items-center justify-between">
               <div className="min-w-0">
                 <div className="text-xs font-semibold text-gray-700 truncate">{user?.email?.split('@')[0]}</div>
-                <div className="text-xs text-gray-500 truncate">{user?.email}</div>
+                <div className="text-xs text-gray-400 truncate">{user?.email}</div>
               </div>
-              <button onClick={handleLogout} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors flex-shrink-0 ml-2" title="Sair">
+              <button onClick={handleLogout} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 ml-2" title="Sair">
                 <LogOut size={15} />
               </button>
             </div>
           ) : (
-            <button onClick={handleLogout} className="w-full flex justify-center p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors" title="Sair">
+            <button onClick={handleLogout} className="w-full flex justify-center p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Sair">
               <LogOut size={15} />
             </button>
           )}
@@ -115,26 +104,26 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
             const Icon = item.icon
             const isActive = currentPage === item.id
             return (
-              <Link
+              <button
                 key={item.id}
-                to={PAGE_TO_ROUTE[item.id]}
+                onClick={() => onNavigate(item.id)}
                 className={`
                   flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-w-0
                   transition-colors duration-150 relative
-                  ${isActive ? 'text-orange-500' : 'text-gray-500'}
+                  ${isActive ? 'text-orange-500' : 'text-gray-400'}
                 `}
               >
                 {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-orange-500 rounded-full" />}
                 <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
-                <span className={`text-xs font-semibold truncate w-full text-center px-0.5 ${isActive ? 'text-orange-500' : 'text-gray-500'}`}>
+                <span className={`text-[9px] font-semibold truncate w-full text-center px-0.5 ${isActive ? 'text-orange-500' : 'text-gray-400'}`}>
                   {item.label}
                 </span>
-              </Link>
+              </button>
             )
           })}
-          <button onClick={handleLogout} className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-gray-500 hover:text-red-400 transition-colors">
+          <button onClick={handleLogout} className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-gray-400 hover:text-red-400 transition-colors">
             <LogOut size={20} strokeWidth={1.8} />
-            <span className="text-xs font-semibold">Sair</span>
+            <span className="text-[9px] font-semibold">Sair</span>
           </button>
         </div>
       </nav>

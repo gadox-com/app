@@ -27,20 +27,11 @@ export default function BuscaRapida({ onNavigate }) {
   const [perfilId, setPerfilId] = useState(null)
   const inputRef = useRef(null)
 
-  // Listener para abrir animal por brinco (ex: clique na matriz)
-  useEffect(() => {
-    const openByBrinco = async (e) => {
-      const norm = String(parseInt(e.detail, 10))
-      const found = todos.find(a => String(parseInt(a.brinco, 10)) === norm)
-      if (found) setPerfilId(found.id)
-    }
-    document.addEventListener('openAnimalByBrinco', openByBrinco)
-    return () => document.removeEventListener('openAnimalByBrinco', openByBrinco)
-  }, [todos])
-
   useEffect(() => {
     async function load() {
-      let all = [], from = 0
+      // Busca todos sem limite — ativos e inativos
+      let all = []
+      let from = 0
       while (true) {
         const { data } = await supabase
           .from('animais')
@@ -73,66 +64,85 @@ export default function BuscaRapida({ onNavigate }) {
 
   return (
     <>
-      <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+      <div className="flex flex-col h-screen overflow-hidden">
 
-        {/* HEADER — estilo Apple */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-100">
-          {/* Barra superior com título */}
-          <div className="px-8 pt-8 pb-4">
-            <p className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-1">Rebanho</p>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight">Busca Rápida</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {carregou ? `${todos.length} animais disponíveis` : 'Carregando...'}
-            </p>
-          </div>
+        {/* TOPO — metade laranja com campo de busca */}
+        <div className="flex-shrink-0 relative" style={{
+          background: 'linear-gradient(160deg, #f97316 0%, #fb923c 100%)',
+          paddingTop: 'env(safe-area-inset-top, 16px)',
+        }}>
+          {/* Círculos decorativos */}
+          <div style={{ position:'absolute', width:220, height:220, borderRadius:'50%', border:'1px solid rgba(255,255,255,0.12)', top:-80, right:-60, pointerEvents:'none' }} />
+          <div style={{ position:'absolute', width:140, height:140, borderRadius:'50%', border:'1px solid rgba(255,255,255,0.08)', top:20, right:60, pointerEvents:'none' }} />
 
-          {/* Campo de busca — estilo iOS */}
-          <div className="px-6 pb-5">
+          <div className="px-5 pt-6 pb-8 relative z-10">
+            {/* Header */}
+            <div className="mb-6">
+              <p className="text-orange-200 text-xs font-semibold uppercase tracking-widest mb-1">GadoX</p>
+              <h1 className="text-white text-3xl font-black tracking-tight leading-none">Busca Rápida</h1>
+              <p className="text-orange-200 text-sm mt-1">
+                {carregou ? `${todos.length} animais carregados` : 'Carregando...'}
+              </p>
+            </div>
+
+            {/* Campo de busca */}
             <div className="relative">
-              <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+              <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-300 pointer-events-none" />
               <input
                 ref={inputRef}
                 type="number"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                className="w-full pl-11 pr-11 py-3.5 text-xl font-black font-mono rounded-2xl bg-gray-100 border-0 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all"
-                placeholder="Número do brinco..."
+                className="w-full pl-12 pr-12 py-4 text-2xl font-black font-mono rounded-2xl bg-white/20 backdrop-blur-sm border-2 border-white/30 text-white placeholder-orange-200 focus:outline-none focus:bg-white/30 focus:border-white/60 transition-all"
+                placeholder="Digite o brinco..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 autoComplete="off"
+                style={{ caretColor: 'white' }}
               />
               {query && (
-                <button onClick={limpar} className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center transition-colors hover:bg-gray-500">
-                  <X size={11} className="text-white" />
+                <button onClick={limpar} className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-200 hover:text-white transition-colors">
+                  <X size={20} />
                 </button>
               )}
             </div>
+
+            {/* Contagem de resultados */}
             {query && (
-              <p className="text-xs text-gray-500 mt-2 ml-1">
-                {resultados.length === 0 ? 'Nenhum resultado' : `${resultados.length} resultado${resultados.length > 1 ? 's' : ''}`}
+              <p className="text-orange-200 text-xs mt-2.5 ml-1">
+                {resultados.length === 0
+                  ? 'Nenhum animal encontrado'
+                  : `${resultados.length} animal${resultados.length > 1 ? 'is' : ''} encontrado${resultados.length > 1 ? 's' : ''}`}
               </p>
             )}
           </div>
+
+          {/* Curva na base do header */}
+          <div style={{
+            position: 'absolute', bottom: -24, left: 0, right: 0, height: 48,
+            background: '#f8f9fa', borderRadius: '50% 50% 0 0 / 100% 100% 0 0',
+            zIndex: 1,
+          }} />
         </div>
 
-        {/* RESULTADOS */}
-        <div className="flex-1 overflow-y-auto">
+        {/* CORPO — resultados */}
+        <div className="flex-1 overflow-y-auto bg-gray-50 pt-4 pb-24">
 
-          {/* Estado vazio */}
+          {/* Estado inicial */}
           {!query && (
-            <div className="flex flex-col items-center justify-center h-full pb-20">
-              <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center mb-4">
-                <Search size={24} className="text-orange-300" />
+            <div className="flex flex-col items-center justify-center h-full text-center px-8 pb-16">
+              <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center mb-5">
+                <Search size={32} className="text-orange-300" />
               </div>
-              <p className="text-base font-semibold text-gray-500">Digite o brinco</p>
-              <p className="text-sm text-gray-500 mt-1">A busca acontece enquanto você digita</p>
+              <p className="text-lg font-bold text-gray-400">Digite o número do brinco</p>
+              <p className="text-sm text-gray-300 mt-1">A busca é instantânea</p>
             </div>
           )}
 
           {/* Resultados */}
           {resultados.length > 0 && (
-            <div className="px-6 py-4 space-y-2 pb-24">
-              {resultados.map((animal, idx) => {
+            <div className="px-4 space-y-3">
+              {resultados.map(animal => {
                 const cat = calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria
                 const ativo = animal.status === 'ATIVO'
                 const id = idade(animal.nascimento)
@@ -141,74 +151,51 @@ export default function BuscaRapida({ onNavigate }) {
                   <button
                     key={animal.id}
                     onClick={() => setPerfilId(animal.id)}
-                    className="w-full bg-white rounded-2xl border border-gray-100 p-4 text-left transition-all hover:border-orange-200 hover:shadow-sm active:scale-[0.99]"
+                    className="w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-4 text-left transition-all active:scale-95"
                   >
-                    <div className="flex items-center justify-between mb-2.5">
-                      <div className="flex items-center gap-2.5">
-                        {/* Número do brinco em destaque */}
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-2xl font-black text-gray-900 leading-none">
-                            #{animal.brinco}
-                          </span>
-                          {animal.descarte && (
-                            <div className="flex items-center gap-1 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
-                              <svg width="8" height="10" viewBox="0 0 10 12" fill="#ef4444" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M0 0h10v8L5 6 0 8V0z"/>
-                                <rect x="0" y="0" width="1.5" height="12" fill="#ef4444"/>
-                              </svg>
-                              <span className="text-xs font-bold text-red-600 uppercase tracking-wide">Descarte</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {ativo ? '● Ativo' : '○ Inativo'}
-                          </span>
-                          {animal.confinado && (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">Conf.</span>
-                          )}
-                        </div>
+                    {/* Linha topo */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-2xl font-black text-gray-900">#{animal.brinco}</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                          {ativo ? '● Ativo' : '○ Inativo'}
+                        </span>
+                        {animal.confinado && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">Confinado</span>}
                       </div>
-                      <ChevronRight size={16} className="text-gray-500" />
+                      <ChevronRight size={18} className="text-orange-300 flex-shrink-0" />
                     </div>
 
-                    {/* Raça + categoria */}
-                    <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+                    {/* Raça + categoria + sexo + cor */}
+                    <div className="flex items-center gap-2 flex-wrap mb-3">
                       <span className="text-sm font-bold text-gray-800">{animal.raca}</span>
-                      <span className="text-gray-500 text-sm">·</span>
-                      <span className="text-sm font-semibold text-orange-500">{cat}</span>
-                      <span className="text-gray-500 text-sm">·</span>
+                      <span className="text-gray-300">·</span>
+                      <span className="text-sm font-bold text-orange-500">{cat}</span>
+                      <span className="text-gray-300">·</span>
                       <span className="text-sm text-gray-500">{animal.sexo === 'MACHO' ? '♂' : '♀'}</span>
-                      {animal.cor && <><span className="text-gray-500 text-sm">·</span><span className="text-sm text-gray-500">{animal.cor}</span></>}
+                      {animal.cor && <><span className="text-gray-300">·</span><span className="text-sm text-gray-400">{animal.cor}</span></>}
                     </div>
 
-                    {/* Pills de info */}
-                    <div className="flex gap-2 flex-wrap">
-                      {animal.local && (
-                        <div className="flex items-center gap-1 bg-gray-50 rounded-lg px-2.5 py-1.5">
-                          <MapPin size={10} className="text-gray-500" />
-                          <span className="text-xs font-semibold text-gray-600">{animal.local}</span>
-                        </div>
-                      )}
-                      {animal.peso && (
-                        <div className="flex items-center gap-1 bg-gray-50 rounded-lg px-2.5 py-1.5">
-                          <Weight size={10} className="text-gray-500" />
-                          <span className="text-xs font-semibold text-gray-600">{animal.peso} kg</span>
-                        </div>
-                      )}
-                      {id && (
-                        <div className="flex items-center gap-1 bg-gray-50 rounded-lg px-2.5 py-1.5">
-                          <Calendar size={10} className="text-gray-500" />
-                          <span className="text-xs font-semibold text-gray-600">{id}</span>
-                        </div>
-                      )}
-                      {animal.matriz && (
-                        <div className="flex items-center gap-1 bg-gray-50 rounded-lg px-2.5 py-1.5">
-                          <span className="text-xs text-gray-500">Mãe</span>
-                          <span className="text-xs font-mono font-bold text-gray-600">#{animal.matriz}</span>
-                        </div>
-                      )}
+                    {/* Grid de info */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-orange-50 rounded-xl p-2.5">
+                        <div className="text-[9px] font-bold text-orange-300 uppercase tracking-wider mb-0.5 flex items-center gap-0.5"><MapPin size={8} /> Local</div>
+                        <div className="text-sm font-black text-gray-800">{animal.local || '—'}</div>
+                      </div>
+                      <div className="bg-orange-50 rounded-xl p-2.5">
+                        <div className="text-[9px] font-bold text-orange-300 uppercase tracking-wider mb-0.5 flex items-center gap-0.5"><Weight size={8} /> Peso</div>
+                        <div className="text-sm font-black text-gray-800">{animal.peso ? `${animal.peso}kg` : '—'}</div>
+                      </div>
+                      <div className="bg-orange-50 rounded-xl p-2.5">
+                        <div className="text-[9px] font-bold text-orange-300 uppercase tracking-wider mb-0.5 flex items-center gap-0.5"><Calendar size={8} /> Idade</div>
+                        <div className="text-sm font-black text-gray-800">{id || '—'}</div>
+                      </div>
                     </div>
+
+                    {animal.matriz && (
+                      <div className="mt-2.5 text-xs text-gray-400">
+                        Matriz: <span className="font-mono font-bold text-gray-600">#{animal.matriz}</span>
+                      </div>
+                    )}
                   </button>
                 )
               })}
@@ -218,14 +205,15 @@ export default function BuscaRapida({ onNavigate }) {
           {/* Não encontrado */}
           {query && resultados.length === 0 && carregou && (
             <div className="flex flex-col items-center justify-center h-48 text-center px-8">
-              <p className="text-4xl mb-3">🔍</p>
-              <p className="text-base font-semibold text-gray-500">Brinco {query} não encontrado</p>
-              <p className="text-sm text-gray-500 mt-1">Verifique o número</p>
+              <p className="text-5xl mb-3">🔍</p>
+              <p className="text-base font-bold text-gray-400">Brinco {query} não encontrado</p>
+              <p className="text-sm text-gray-300 mt-1">Verifique o número</p>
             </div>
           )}
         </div>
       </div>
 
+      {/* Perfil completo ao clicar */}
       <AnimalPerfil
         isOpen={!!perfilId}
         onClose={() => setPerfilId(null)}

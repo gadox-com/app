@@ -135,9 +135,9 @@ export default function ReproducaoModal({ isOpen, onClose, animal }) {
         )}
 
         {loadingHist ? (
-          <div className="text-center py-6 text-sm text-gray-500">Carregando...</div>
+          <div className="text-center py-6 text-sm text-gray-400">Carregando...</div>
         ) : historico.length === 0 ? (
-          <div className="text-center py-8 text-sm text-gray-500 bg-gray-50 rounded-xl">
+          <div className="text-center py-8 text-sm text-gray-400 bg-gray-50 rounded-xl">
             Nenhum registro reprodutivo ainda.
           </div>
         ) : (
@@ -160,7 +160,7 @@ export default function ReproducaoModal({ isOpen, onClose, animal }) {
                     {h.data_peso && <span>Data: <strong>{formatDate(h.data_peso)}</strong></span>}
                   </div>
                 )}
-                {h.observacao && <p className="text-xs text-gray-500 mt-1">{h.observacao}</p>}
+                {h.observacao && <p className="text-xs text-gray-400 mt-1">{h.observacao}</p>}
               </div>
             ))}
           </div>

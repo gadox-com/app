@@ -124,9 +124,9 @@ export default function ConfinamentoModal({ isOpen, onClose, animal }) {
           )}
 
           {loadingHist ? (
-            <div className="text-center py-6 text-sm text-gray-500">Carregando histórico...</div>
+            <div className="text-center py-6 text-sm text-gray-400">Carregando histórico...</div>
           ) : historico.length === 0 ? (
-            <div className="text-center py-8 text-sm text-gray-500 bg-gray-50 rounded-xl">
+            <div className="text-center py-8 text-sm text-gray-400 bg-gray-50 rounded-xl">
               Nenhum registro de confinamento ainda.
             </div>
           ) : (
@@ -145,7 +145,7 @@ export default function ConfinamentoModal({ isOpen, onClose, animal }) {
                         {h.peso && <span>Peso atual: <strong>{h.peso} kg</strong></span>}
                         {h.data_peso && <span>Data: <strong>{formatDate(h.data_peso)}</strong></span>}
                       </div>
-                      {h.observacao && <p className="text-xs text-gray-500 mt-1">{h.observacao}</p>}
+                      {h.observacao && <p className="text-xs text-gray-400 mt-1">{h.observacao}</p>}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                       {ganho !== null && (
@@ -155,7 +155,7 @@ export default function ConfinamentoModal({ isOpen, onClose, animal }) {
                       )}
                       <button
                         onClick={() => handleDelete(h.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-400"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-400"
                         title="Remover registro"
                       >
                         <X size={13} />
