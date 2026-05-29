@@ -1,30 +1,57 @@
 -- ============================================================
--- FAZENDA SÃO BRÁS – Schema Supabase
+-- GADOX — Schema Supabase
 -- Execute este script no SQL Editor do Supabase
 -- ============================================================
 
--- Tabela principal de animais
+-- FAZENDAS
+CREATE TABLE IF NOT EXISTS fazendas (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  nome TEXT NOT NULL,
+  area_hectares NUMERIC(10,2),
+  limite_animais INTEGER,
+  observacao TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- LOCAIS / PIQUETES
+CREATE TABLE IF NOT EXISTS locais (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  fazenda_id UUID NOT NULL REFERENCES fazendas(id) ON DELETE CASCADE,
+  nome TEXT NOT NULL,
+  area_hectares NUMERIC(10,2),
+  limite_animais INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ANIMAIS (local: texto livre, sem CHECK hardcoded)
 CREATE TABLE IF NOT EXISTS animais (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  brinco TEXT NOT NULL UNIQUE,
+  fazenda_id UUID REFERENCES fazendas(id) ON DELETE SET NULL,
+  brinco TEXT NOT NULL,
   sexo TEXT NOT NULL CHECK (sexo IN ('MACHO', 'FÊMEA')),
   raca TEXT NOT NULL,
   categoria TEXT NOT NULL CHECK (categoria IN ('BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI')),
-  local TEXT NOT NULL DEFAULT 'CASA' CHECK (local IN ('SARANDI', 'CASA', 'CAPANEMA', 'VENDIDO')),
+  local TEXT NOT NULL DEFAULT '',
   nascimento DATE,
   peso NUMERIC(8,2),
   data_peso DATE,
-  status TEXT NOT NULL DEFAULT 'ATIVO' CHECK (status IN ('ATIVO', 'VENDIDO')),
+  status TEXT NOT NULL DEFAULT 'ATIVO' CHECK (status IN ('ATIVO', 'VENDIDO', 'DESCARTE')),
   saida DATE,
   preco_venda NUMERIC(10,2),
   motivo_saida TEXT,
   observacao TEXT,
   usuario TEXT,
+  descarte BOOLEAN DEFAULT false,
+  mae_id UUID REFERENCES animais(id) ON DELETE SET NULL,
+  foto_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(fazenda_id, brinco)
 );
 
--- Tabela de histórico de confinamento
+-- CONFINAMENTO
 CREATE TABLE IF NOT EXISTS confinamento_historico (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   animal_id UUID NOT NULL REFERENCES animais(id) ON DELETE CASCADE,
@@ -36,7 +63,7 @@ CREATE TABLE IF NOT EXISTS confinamento_historico (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Tabela de reprodução
+-- REPRODUÇÃO
 CREATE TABLE IF NOT EXISTS reproducao (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   animal_id UUID NOT NULL REFERENCES animais(id) ON DELETE CASCADE,
@@ -50,15 +77,17 @@ CREATE TABLE IF NOT EXISTS reproducao (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Índices para performance (suportar +3000 animais)
+-- ÍNDICES
+CREATE INDEX IF NOT EXISTS idx_animais_fazenda_id ON animais(fazenda_id);
 CREATE INDEX IF NOT EXISTS idx_animais_status ON animais(status);
 CREATE INDEX IF NOT EXISTS idx_animais_local ON animais(local);
 CREATE INDEX IF NOT EXISTS idx_animais_categoria ON animais(categoria);
 CREATE INDEX IF NOT EXISTS idx_animais_brinco ON animais(brinco);
+CREATE INDEX IF NOT EXISTS idx_locais_fazenda_id ON locais(fazenda_id);
 CREATE INDEX IF NOT EXISTS idx_confinamento_animal_id ON confinamento_historico(animal_id);
 CREATE INDEX IF NOT EXISTS idx_reproducao_animal_id ON reproducao(animal_id);
 
--- Função para atualizar updated_at automaticamente
+-- TRIGGER updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -68,25 +97,35 @@ END;
 $$ language 'plpgsql';
 
 CREATE TRIGGER update_animais_updated_at
-  BEFORE UPDATE ON animais
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  BEFORE UPDATE ON animais FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Row Level Security (RLS) - Habilitar para produção
+CREATE TRIGGER update_fazendas_updated_at
+  BEFORE UPDATE ON fazendas FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ROW LEVEL SECURITY
+ALTER TABLE fazendas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE locais ENABLE ROW LEVEL SECURITY;
 ALTER TABLE animais ENABLE ROW LEVEL SECURITY;
 ALTER TABLE confinamento_historico ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reproducao ENABLE ROW LEVEL SECURITY;
 
--- Políticas permissivas (ajuste conforme necessidade de autenticação)
-CREATE POLICY "Acesso público animais" ON animais FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Acesso público confinamento" ON confinamento_historico FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Acesso público reproducao" ON reproducao FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "fazendas_owner" ON fazendas FOR ALL
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
--- ============================================================
--- DADOS DE EXEMPLO (opcional - remova em produção)
--- ============================================================
-INSERT INTO animais (brinco, sexo, raca, categoria, local, nascimento, peso, data_peso, status) VALUES
-('001', 'MACHO', 'Nelore', 'NOVILHO', 'SARANDI', '2022-03-15', 380.5, CURRENT_DATE, 'ATIVO'),
-('002', 'FÊMEA', 'Nelore', 'VACA', 'CASA', '2019-07-20', 480.0, CURRENT_DATE, 'ATIVO'),
-('003', 'MACHO', 'Angus', 'BOI', 'CAPANEMA', '2021-01-10', 520.0, CURRENT_DATE, 'ATIVO'),
-('004', 'FÊMEA', 'Girolando', 'NOVILHA', 'SARANDI', '2022-11-05', 320.0, CURRENT_DATE, 'ATIVO'),
-('005', 'MACHO', 'Nelore', 'TOURO', 'CASA', '2018-05-12', 780.0, CURRENT_DATE, 'ATIVO');
+CREATE POLICY "locais_owner" ON locais FOR ALL
+  USING (fazenda_id IN (SELECT id FROM fazendas WHERE user_id = auth.uid()))
+  WITH CHECK (fazenda_id IN (SELECT id FROM fazendas WHERE user_id = auth.uid()));
+
+CREATE POLICY "animais_owner" ON animais FOR ALL
+  USING (fazenda_id IN (SELECT id FROM fazendas WHERE user_id = auth.uid()))
+  WITH CHECK (fazenda_id IN (SELECT id FROM fazendas WHERE user_id = auth.uid()));
+
+CREATE POLICY "confinamento_owner" ON confinamento_historico FOR ALL
+  USING (animal_id IN (
+    SELECT id FROM animais WHERE fazenda_id IN (SELECT id FROM fazendas WHERE user_id = auth.uid())
+  ));
+
+CREATE POLICY "reproducao_owner" ON reproducao FOR ALL
+  USING (animal_id IN (
+    SELECT id FROM animais WHERE fazenda_id IN (SELECT id FROM fazendas WHERE user_id = auth.uid())
+  ));
