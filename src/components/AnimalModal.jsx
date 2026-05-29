@@ -13,12 +13,12 @@ function calcularCategoria(nascimento, sexo) {
   if (meses <= 36) return isMacho ? 'BOI' : 'VACA'
   return isMacho ? 'TOURO' : 'VACA'
 }
-const LOCAIS = ['SARANDI', 'CASA', 'CAPANEMA']
 const RACAS = ['Nelore', 'Tabapuã', 'Hereford', 'Angus', 'Braford']
 
 export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
   const isEdit = !!animal?.id
   const [form, setForm] = useState({})
+  const [locais, setLocais] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -29,7 +29,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         sexo: animal.sexo || 'MACHO',
         raca: animal.raca || 'Nelore',
         categoria: animal.categoria || 'NOVILHO',
-        local: animal.local || 'CASA',
+        local: animal.local || '',
         nascimento: animal.nascimento || '',
         observacao: animal.observacao || '',
         usuario: animal.usuario || '',
@@ -40,12 +40,18 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
     } else {
       setForm({
         brinco: '', sexo: 'MACHO', raca: 'Nelore', categoria: 'NOVILHO',
-        local: 'CASA', nascimento: '', observacao: '',
+        local: '', nascimento: '', observacao: '',
         usuario: '', status: 'ATIVO', matriz: '', cor: '',
       })
     }
     setError('')
   }, [animal, isOpen])
+
+  useEffect(() => {
+    supabase.from('locais').select('nome').order('nome').then(({ data }) => {
+      setLocais((data || []).map(l => l.nome))
+    })
+  }, [])
 
   const set = (field, value) => setForm(f => ({ ...f, [field]: value }))
 
@@ -182,7 +188,9 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
           <div>
             <label className="label">Local</label>
             <select className="input-field" value={form.local} onChange={e => set('local', e.target.value)}>
-              {LOCAIS.map(l => <option key={l}>{l}</option>)}
+              {locais.length === 0
+                ? <option value="">Carregando...</option>
+                : locais.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
           <div>

@@ -10,12 +10,12 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import { useRole } from '../lib/role.jsx'
 
 const CATEGORIAS = ['Todas', 'BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI']
-const LOCAIS = ['Todos', 'SARANDI', 'CASA', 'CAPANEMA', 'VENDIDO']
 const STATUS = ['Todos', 'ATIVO', 'VENDIDO']
 
 export default function Animais() {
   const { isViewer } = useRole()
   const [animais, setAnimais] = useState([])
+  const [locais, setLocais] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -37,6 +37,12 @@ export default function Animais() {
   const [perfilId, setPerfilId] = useState(null)
 
   useEffect(() => { fetchAnimais() }, [])
+
+  useEffect(() => {
+    supabase.from('locais').select('nome').order('nome').then(({ data }) => {
+      setLocais(['Todos', ...(data || []).map(l => l.nome), 'VENDIDO'])
+    })
+  }, [])
 
   // Listen for cross-animal navigation from AnimalPerfil
   useEffect(() => {
@@ -84,7 +90,7 @@ export default function Animais() {
     e.stopPropagation()
     const novoStatus = animal.status === 'ATIVO' ? 'VENDIDO' : 'ATIVO'
     const updates = novoStatus === 'ATIVO'
-      ? { status: 'ATIVO', local: 'CASA', saida: null, motivo_saida: null }
+      ? { status: 'ATIVO', saida: null, motivo_saida: null }
       : { status: 'VENDIDO', local: 'VENDIDO', saida: new Date().toISOString().split('T')[0], motivo_saida: 'Baixa manual' }
     await supabase.from('animais').update(updates).eq('id', animal.id)
     fetchAnimais()
@@ -254,7 +260,7 @@ export default function Animais() {
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Local</span>
             <select className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-orange-400"
               value={filters.local} onChange={e => setFilters(f => ({ ...f, local: e.target.value }))}>
-              {LOCAIS.map(l => <option key={l}>{l}</option>)}
+              {locais.map(l => <option key={l}>{l}</option>)}
             </select>
           </div>
 

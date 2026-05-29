@@ -36,6 +36,7 @@ function anoNasc(nascimento) {
 
 export default function Relatorios() {
   const [animais, setAnimais] = useState([])
+  const [locais, setLocais] = useState([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [filters, setFilters] = useState({
@@ -48,6 +49,12 @@ export default function Relatorios() {
   })
 
   useEffect(() => { fetchAnimais() }, [])
+
+  useEffect(() => {
+    supabase.from('locais').select('nome').order('nome').then(({ data }) => {
+      setLocais(['Todos', ...(data || []).map(l => l.nome)])
+    })
+  }, [])
 
   async function fetchAnimais() {
     setLoading(true)
@@ -340,7 +347,7 @@ export default function Relatorios() {
               <div>
                 <label className="label">Local</label>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {['Todos', 'SARANDI', 'CASA', 'CAPANEMA'].map(l => (
+                  {locais.map(l => (
                     <button key={l} onClick={() => setFilters(f => ({ ...f, local: l }))}
                       className={`py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${filters.local === l ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-150 hover:border-gray-300'}`}>
                       {l}

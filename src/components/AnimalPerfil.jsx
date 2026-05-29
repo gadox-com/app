@@ -249,8 +249,8 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
   async function toggleStatus() {
     setTogglingStatus(true)
     if (animal.status !== 'ATIVO') {
-      await supabase.from('animais').update({ status: 'ATIVO', local: 'CASA', saida: null, motivo_saida: null }).eq('id', animalId)
-      setAnimal(a => ({ ...a, status: 'ATIVO', local: 'CASA' }))
+      await supabase.from('animais').update({ status: 'ATIVO', saida: null, motivo_saida: null }).eq('id', animalId)
+      setAnimal(a => ({ ...a, status: 'ATIVO' }))
       await registrarLog('Reativou animal', null, animalId, animal?.brinco)
       onSaved?.()
     } else {
