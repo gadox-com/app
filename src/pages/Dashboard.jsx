@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package } from 'lucide-react'
+import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package, Plus } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
 import AnimalPerfil from '../components/AnimalPerfil'
@@ -19,6 +19,7 @@ export default function Dashboard({ onNavigate }) {
   const [animais, setAnimais] = useState([])
   const [locais, setLocais] = useState([])
   const [loading, setLoading] = useState(true)
+  const [modalCadastro, setModalCadastro] = useState(false)
   const [error, setError] = useState(null)
   const [perfilId, setPerfilId] = useState(null)
   const [logs, setLogs] = useState([])
@@ -140,12 +141,21 @@ export default function Dashboard({ onNavigate }) {
           <p className="text-sm text-gray-500">{greeting}{userName ? `, ${userName}` : ''}</p>
           <h1 className="text-2xl font-bold text-gray-900 mt-0.5">GadoX</h1>
         </div>
-        <button
-          onClick={fetchData}
-          className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-gray-600 transition-colors"
-        >
-          <RefreshCw size={15} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setModalCadastro(true)}
+            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          >
+            <Plus size={15} />
+            Cadastrar animal
+          </button>
+          <button
+            onClick={fetchData}
+            className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-gray-600 transition-colors"
+          >
+            <RefreshCw size={15} />
+          </button>
+        </div>
       </div>
 
       {/* KPIs principais */}
@@ -357,6 +367,14 @@ export default function Dashboard({ onNavigate }) {
         animalId={perfilId}
         onSaved={() => { fetchData(); fetchLogs() }}
       />
+      {modalCadastro && (
+        <AnimalModal
+          isOpen={modalCadastro}
+          onClose={() => setModalCadastro(false)}
+          animal={null}
+          onSaved={() => { setModalCadastro(false); fetchData() }}
+        />
+      )}
     </div>
   )
 }
