@@ -5,11 +5,6 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
 import AnimalPerfil from '../components/AnimalPerfil'
 
-const FAZENDAS = [
-  { key: 'SARANDI', label: 'Sarandi' },
-  { key: 'CASA', label: 'Casa' },
-  { key: 'CAPANEMA', label: 'Capanema' },
-]
 
 const CATEGORIAS_ORDER = ['BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI']
 
@@ -22,6 +17,7 @@ export default function Dashboard({ onNavigate }) {
   }, [])
 
   const [animais, setAnimais] = useState([])
+  const [locais, setLocais] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [perfilId, setPerfilId] = useState(null)
@@ -80,6 +76,15 @@ export default function Dashboard({ onNavigate }) {
         from += 1000
       }
       setAnimais(all)
+      // Buscar locais dinâmicos
+      const { data: locaisData } = await supabase.from('locais').select('nome').order('nome')
+      if (locaisData && locaisData.length > 0) {
+        setLocais(locaisData.map(l => l.nome))
+      } else {
+        // Fallback: locais distintos dos animais cadastrados
+        const distintos = [...new Set(all.map(a => a.local).filter(Boolean))].sort()
+        setLocais(distintos)
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -272,15 +277,17 @@ export default function Dashboard({ onNavigate }) {
       <div>
         <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Animais por Fazenda</p>
         <div className="grid grid-cols-3 gap-4">
-          {[{key:'CASA',label:'Casa'},{key:'CAPANEMA',label:'Capanema'},{key:'SARANDI',label:'Sarandi'}].map(({ key, label }) => {
-            const lista = ativos.filter(a => a.local === key)
+          {locais.length === 0 ? (
+            <div className="col-span-3 text-center py-6 text-gray-400 text-sm">Nenhum local cadastrado — cadastre em Fazendas</div>
+          ) : locais.map((nome) => {
+            const lista = ativos.filter(a => a.local === nome)
             const cats = CATEGORIAS_ORDER
               .map(c => ({ cat: c, count: lista.filter(a => a.categoria === c).length }))
               .filter(x => x.count > 0)
             return (
-              <div key={key} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div key={nome} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="font-bold text-gray-900">{label}</span>
+                  <span className="font-bold text-gray-900">{nome.charAt(0) + nome.slice(1).toLowerCase()}</span>
                   <span className="text-2xl font-black text-orange-500">{lista.length}</span>
                 </div>
                 {cats.length === 0
