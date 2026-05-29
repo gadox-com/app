@@ -78,7 +78,7 @@ export default function Reproducao() {
       {/* Filters */}
       <div className="card p-4 mb-4 flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input className="input-field pl-9" placeholder="Buscar por brinco ou raça..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select className="input-field w-40" value={filtroResultado} onChange={e => setFiltroResultado(e.target.value)}>
@@ -99,7 +99,7 @@ export default function Reproducao() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400 text-sm">Nenhum registro encontrado</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-500 text-sm">Nenhum registro encontrado</td></tr>
                 )}
                 {filtered.map(d => (
                   <tr
