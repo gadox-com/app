@@ -85,7 +85,7 @@ export default function Confinamento() {
       {/* Search */}
       <div className="card p-4 mb-4">
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             className="input-field pl-9"
             placeholder="Buscar por brinco ou raça..."
@@ -110,7 +110,7 @@ export default function Confinamento() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.length === 0 && (
-                  <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-sm">Nenhum registro encontrado</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-500 text-sm">Nenhum registro encontrado</td></tr>
                 )}
                 {filtered.map(d => {
                   const ganho = d.peso && d.peso_inicial ? (d.peso - d.peso_inicial) : null
@@ -132,7 +132,7 @@ export default function Confinamento() {
                       <td className={`px-4 py-3 ${gainColor(ganho)}`}>
                         {ganho !== null ? `${ganho > 0 ? '+' : ''}${ganho.toFixed(1)} kg` : '—'}
                       </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs max-w-32 truncate">{d.observacao || '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs max-w-32 truncate">{d.observacao || '—'}</td>
                     </tr>
                   )
                 })}

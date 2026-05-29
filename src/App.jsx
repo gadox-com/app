@@ -1,5 +1,7 @@
-import { useState, useEffect, Component } from 'react'
+import { useEffect, Component } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
+import { useState } from 'react'
 import Sidebar from './components/Sidebar'
 import { RoleProvider } from './lib/role.jsx'
 import Login from './pages/Login'
@@ -9,6 +11,7 @@ import Confinamento from './pages/Confinamento'
 import Reproducao from './pages/Reproducao'
 import Vendas from './pages/Vendas'
 import Relatorios from './pages/Relatorios'
+import BuscaRapida from './pages/BuscaRapida'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -21,35 +24,83 @@ class ErrorBoundary extends Component {
         <pre style={{ background: '#f5f5f5', padding: 16, borderRadius: 8, overflow: 'auto' }}>
           {this.state.error.toString()}
         </pre>
-        <button onClick={() => this.setState({ error: null })} style={{ marginTop: 16, padding: '8px 16px' }}>
-          Tentar novamente
-        </button>
+        <button onClick={() => this.setState({ error: null })} style={{ marginTop: 16, padding: '8px 16px' }}>Tentar novamente</button>
       </div>
     )
     return this.props.children
   }
 }
 
-const PAGES = {
-  dashboard: Dashboard,
-  animais: Animais,
-  confinamento: Confinamento,
-  reproducao: Reproducao,
-  vendas: Vendas,
-  relatorios: Relatorios,
+// Map routes to page ids for sidebar active state
+const ROUTE_TO_PAGE = {
+  '/': 'dashboard',
+  '/dashboard': 'dashboard',
+  '/busca-rapida': 'busca',
+  '/animais': 'animais',
+  '/confinamento': 'confinamento',
+  '/reproducao': 'reproducao',
+  '/vendas': 'vendas',
+  '/relatorios': 'relatorios',
+}
+
+const PAGE_TO_ROUTE = {
+  dashboard: '/dashboard',
+  busca: '/busca-rapida',
+  animais: '/animais',
+  confinamento: '/confinamento',
+  reproducao: '/reproducao',
+  vendas: '/vendas',
+  relatorios: '/relatorios',
+}
+
+function AppInner({ session }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  const currentPage = ROUTE_TO_PAGE[location.pathname] || 'dashboard'
+
+  function handleNavigate(page) {
+    const route = PAGE_TO_ROUTE[page] || '/dashboard'
+    navigate(route)
+  }
+
+  return (
+    <RoleProvider>
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <Sidebar
+          currentPage={currentPage}
+          onNavigate={handleNavigate}
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+          user={session.user}
+        />
+        <main className="flex-1 overflow-auto pb-16 lg:pb-0 min-w-0">
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<ErrorBoundary key="dashboard"><Dashboard onNavigate={handleNavigate} /></ErrorBoundary>} />
+            <Route path="/busca-rapida" element={<ErrorBoundary key="busca"><BuscaRapida onNavigate={handleNavigate} /></ErrorBoundary>} />
+            <Route path="/animais" element={<ErrorBoundary key="animais"><Animais onNavigate={handleNavigate} /></ErrorBoundary>} />
+            <Route path="/confinamento" element={<ErrorBoundary key="confinamento"><Confinamento onNavigate={handleNavigate} /></ErrorBoundary>} />
+            <Route path="/reproducao" element={<ErrorBoundary key="reproducao"><Reproducao onNavigate={handleNavigate} /></ErrorBoundary>} />
+            <Route path="/vendas" element={<ErrorBoundary key="vendas"><Vendas onNavigate={handleNavigate} /></ErrorBoundary>} />
+            <Route path="/relatorios" element={<ErrorBoundary key="relatorios"><Relatorios onNavigate={handleNavigate} /></ErrorBoundary>} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </main>
+      </div>
+    </RoleProvider>
+  )
 }
 
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(() => localStorage.getItem('currentPage') || 'dashboard')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-
-  const navigate = (page) => { setCurrentPage(page); localStorage.setItem('currentPage', page) }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session); setLoading(false)
+      setSession(session)
+      setLoading(false)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
@@ -63,26 +114,15 @@ export default function App() {
     </div>
   )
 
-  if (!session) return <Login onLogin={() => {}} />
-
-  const PageComponent = PAGES[currentPage] || Dashboard
+  if (!session) return (
+    <BrowserRouter>
+      <Login onLogin={() => {}} />
+    </BrowserRouter>
+  )
 
   return (
-    <RoleProvider>
-      <div className="flex h-screen bg-gray-50 overflow-hidden">
-        <Sidebar
-          currentPage={currentPage}
-          onNavigate={navigate}
-          isOpen={sidebarOpen}
-          onToggle={() => setSidebarOpen(!sidebarOpen)}
-          user={session.user}
-        />
-        <main className="flex-1 overflow-auto pb-16 lg:pb-0 min-w-0">
-          <ErrorBoundary key={currentPage}>
-            <PageComponent onNavigate={navigate} />
-          </ErrorBoundary>
-        </main>
-      </div>
-    </RoleProvider>
+    <BrowserRouter>
+      <AppInner session={session} />
+    </BrowserRouter>
   )
 }

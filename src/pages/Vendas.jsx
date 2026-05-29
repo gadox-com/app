@@ -81,7 +81,7 @@ export default function Vendas() {
       {/* Search */}
       <div className="card p-4 mb-4">
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input className="input-field pl-9" placeholder="Buscar por brinco, raça ou categoria..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
@@ -99,7 +99,7 @@ export default function Vendas() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">Nenhuma venda encontrada</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-500 text-sm">Nenhuma venda encontrada</td></tr>
                 )}
                 {filtered.map(v => {
                   const precoKg = v.preco_venda && v.peso
