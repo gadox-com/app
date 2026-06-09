@@ -1,151 +1,259 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Home, TrendingUp, RefreshCw, Search } from 'lucide-react'
-import LoadingSpinner from '../components/LoadingSpinner'
-import ConfinamentoModal from '../components/ConfinamentoModal'
+import { RefreshCw, Scale, ChevronRight, Search, Loader, X, TrendingUp, Calendar, Package } from 'lucide-react'
+import AnimalPerfil from '../components/AnimalPerfil'
 
-export default function Confinamento() {
-  const [dados, setDados] = useState([])
+const fd = (d) => {
+  if (!d) return '—'
+  const [y, m, day] = String(d).split('T')[0].split('-')
+  return `${day}/${m}/${y}`
+}
+
+const diffDias = (d) => {
+  if (!d) return null
+  const dias = Math.floor((new Date() - new Date(d)) / (1000*60*60*24))
+  return dias
+}
+
+function PesoModal({ animal, onSave, onClose }) {
+  const [peso, setPeso] = useState('')
+  const [data, setData] = useState(new Date().toISOString().split('T')[0])
+  const [saving, setSaving] = useState(false)
+
+  async function salvar() {
+    if (!peso) return
+    setSaving(true)
+    const { data: uf } = await supabase.from('usuario_fazenda').select('fazenda_id').single()
+    await supabase.from('peso_historico').insert([{
+      animal_id: animal.id,
+      fazenda_id: uf?.fazenda_id,
+      peso: parseFloat(peso),
+      data_peso: data,
+    }])
+    await supabase.from('animais').update({ peso: parseFloat(peso), data_peso: data }).eq('id', animal.id)
+    setSaving(false)
+    onSave(parseFloat(peso), data)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl p-5 w-full max-w-xs">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-bold text-gray-900">Registrar Peso</h3>
+            <p className="text-xs text-gray-500">Brinco #{animal.brinco}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={15} /></button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 block">Peso (kg) *</label>
+            <input type="number" step="0.1" autoFocus
+              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-lg font-bold outline-none focus:border-orange-400 transition-colors font-mono"
+              placeholder="0.0" value={peso} onChange={e => setPeso(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && salvar()} />
+            {animal.peso_inicio_dieta && peso && (
+              <p className="text-xs mt-1 font-semibold" style={{ color: parseFloat(peso) >= animal.peso_inicio_dieta ? '#16a34a' : '#ef4444' }}>
+                {parseFloat(peso) >= animal.peso_inicio_dieta ? '+' : ''}{(parseFloat(peso) - animal.peso_inicio_dieta).toFixed(1)} kg desde entrada
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1 block">Data</label>
+            <input type="date" className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-orange-400 transition-colors"
+              value={data} onChange={e => setData(e.target.value)} />
+          </div>
+        </div>
+        <div className="flex gap-2 mt-4">
+          <button onClick={onClose} className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:bg-gray-50">Cancelar</button>
+          <button onClick={salvar} disabled={saving || !peso}
+            className={`flex-1 py-2 rounded-xl text-white text-sm font-bold flex items-center justify-center gap-2 transition-colors ${peso ? 'bg-orange-500 hover:bg-orange-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+            {saving ? <Loader size={13} className="animate-spin" /> : <Scale size={13} />}
+            {saving ? 'Salvando...' : 'Salvar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Confinamento({ onNavigate }) {
+  const [animais, setAnimais] = useState([])
+  const [racoes, setRacoes] = useState({}) // id → nome
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [modal, setModal] = useState({ open: false, animal: null })
+  const [pesoModal, setPesoModal] = useState(null)
+  const [perfilId, setPerfilId] = useState(null)
 
   useEffect(() => { fetchDados() }, [])
 
   async function fetchDados() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('confinamento_historico')
-      .select(`
-        *,
-        animais (id, brinco, raca, categoria, status)
-      `)
-      .order('data_confinamento', { ascending: false })
-
-    if (!error) setDados(data || [])
+    const [{ data: a }, { data: r }] = await Promise.all([
+      supabase.from('animais')
+        .select('id, brinco, raca, categoria, sexo, peso, data_peso, peso_inicio_dieta, data_confinamento, racao_id, confinado')
+        .eq('confinado', true)
+        .eq('status', 'ATIVO')
+        .order('data_confinamento', { ascending: false }),
+      supabase.from('racoes').select('id, nome'),
+    ])
+    setAnimais(a || [])
+    const rMap = {}
+    ;(r || []).forEach(x => { rMap[x.id] = x.nome })
+    setRacoes(rMap)
     setLoading(false)
   }
 
-  const filtered = dados.filter(d => {
-    if (!search.trim()) return true
-    const q = search.toLowerCase()
-    return d.animais?.brinco?.toLowerCase().includes(q) ||
-      d.animais?.raca?.toLowerCase().includes(q)
-  })
-
-  const formatDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—'
-
-  const gainColor = (g) => {
-    if (!g && g !== 0) return ''
-    if (g > 0) return 'text-green-600 font-semibold'
-    if (g < 0) return 'text-red-500 font-semibold'
-    return 'text-gray-500'
+  function atualizarPesoLocal(animalId, peso, data_peso) {
+    setAnimais(prev => prev.map(a => a.id === animalId ? { ...a, peso, data_peso } : a))
   }
 
+  const filtered = animais.filter(a => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return a.brinco?.toLowerCase().includes(q) || a.raca?.toLowerCase().includes(q)
+  })
+
+  // Totais
+  const comGanho = animais.filter(a => a.peso && a.peso_inicio_dieta)
+  const ganhoTotal = comGanho.reduce((s, a) => s + (parseFloat(a.peso) - parseFloat(a.peso_inicio_dieta)), 0)
+  const diasMedio = animais.filter(a => a.data_confinamento).reduce((s, a) => s + diffDias(a.data_confinamento), 0) / Math.max(1, animais.filter(a => a.data_confinamento).length)
+  const gmdMedio = comGanho.length && diasMedio > 0
+    ? comGanho.reduce((s, a) => {
+        const d = diffDias(a.data_confinamento) || diasMedio
+        return s + (parseFloat(a.peso) - parseFloat(a.peso_inicio_dieta)) / d
+      }, 0) / comGanho.length
+    : 0
+
   return (
-    <div className="p-6 lg:p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Confinamento</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{filtered.length} registros</p>
+          <h1 className="text-2xl font-bold text-gray-900">Confinamento</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{animais.length} animal{animais.length !== 1 ? 'is' : ''} confinado{animais.length !== 1 ? 's' : ''}</p>
         </div>
-        <button onClick={fetchDados} className="btn-secondary p-2">
-          <RefreshCw size={15} />
-        </button>
+        <button onClick={fetchDados} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"><RefreshCw size={15} /></button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        {[
-          { label: 'Total Registros', value: dados.length, icon: Home },
-          {
-            label: 'Ganho Médio (kg)',
-            value: (() => {
-              const c = dados.filter(d => d.peso && d.peso_inicial)
-              if (!c.length) return '—'
-              const avg = c.reduce((s, d) => s + (d.peso - d.peso_inicial), 0) / c.length
-              return avg.toFixed(1)
-            })(),
-            icon: TrendingUp
-          },
-        ].map((m) => {
-          const Icon = m.icon
-          return (
-            <div key={m.label} className="card p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Icon size={15} className="text-orange-500" />
-                <span className="text-xs text-gray-500 font-medium">{m.label}</span>
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{m.value}</div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Search */}
-      <div className="card p-4 mb-4">
-        <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input
-            className="input-field pl-9"
-            placeholder="Buscar por brinco ou raça..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {loading ? (
-        <LoadingSpinner />
-      ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  {['Brinco', 'Raça', 'Categoria', 'Entrada', 'Peso Inicial', 'Peso Atual', 'Data Peso', 'Ganho', 'Obs'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.length === 0 && (
-                  <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-500 text-sm">Nenhum registro encontrado</td></tr>
-                )}
-                {filtered.map(d => {
-                  const ganho = d.peso && d.peso_inicial ? (d.peso - d.peso_inicial) : null
-                  return (
-                    <tr
-                      key={d.id}
-                      className="hover:bg-gray-50/50 transition-colors cursor-pointer"
-                      onClick={() => d.animais && setModal({ open: true, animal: d.animais })}
-                    >
-                      <td className="px-4 py-3 font-mono font-semibold text-gray-900">{d.animais?.brinco || '—'}</td>
-                      <td className="px-4 py-3 text-gray-700">{d.animais?.raca || '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">{d.animais?.categoria || '—'}</span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(d.data_confinamento)}</td>
-                      <td className="px-4 py-3 text-gray-700">{d.peso_inicial ? `${d.peso_inicial} kg` : '—'}</td>
-                      <td className="px-4 py-3 text-gray-700">{d.peso ? `${d.peso} kg` : '—'}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(d.data_peso)}</td>
-                      <td className={`px-4 py-3 ${gainColor(ganho)}`}>
-                        {ganho !== null ? `${ganho > 0 ? '+' : ''}${ganho.toFixed(1)} kg` : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs max-w-32 truncate">{d.observacao || '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+      {/* KPIs */}
+      {animais.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
+            <div className="text-3xl font-black text-gray-900">{animais.length}</div>
+            <div className="text-xs text-gray-500 mt-1">Animais confinados</div>
+          </div>
+          <div className="bg-orange-50 rounded-2xl border border-orange-100 p-4 text-center">
+            <div className="text-3xl font-black text-orange-600">{ganhoTotal > 0 ? `+${ganhoTotal.toFixed(0)}` : '—'}</div>
+            <div className="text-xs text-orange-400 mt-1">kg ganhos no total</div>
+          </div>
+          <div className="bg-green-50 rounded-2xl border border-green-100 p-4 text-center">
+            <div className="text-3xl font-black text-green-700">{gmdMedio > 0 ? gmdMedio.toFixed(3) : '—'}</div>
+            <div className="text-xs text-green-500 mt-1">GMD médio (kg/dia)</div>
           </div>
         </div>
       )}
 
-      <ConfinamentoModal
-        isOpen={modal.open}
-        onClose={() => setModal({ open: false, animal: null })}
-        animal={modal.animal}
+      {/* Busca */}
+      <div className="relative">
+        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-orange-400 transition-colors shadow-sm"
+          placeholder="Buscar por brinco ou raça..."
+          value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
+
+      {/* Lista de animais */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16"><div className="w-7 h-7 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+          <Package size={36} className="text-gray-300 mx-auto mb-3" />
+          <p className="font-semibold text-gray-500">Nenhum animal confinado</p>
+          <p className="text-sm text-gray-400 mt-1">Acesse um animal e clique em "Confinamento" para confinar</p>
+          <button onClick={() => onNavigate?.('animais')} className="mt-4 text-sm font-semibold text-orange-500 hover:text-orange-700 transition-colors">Ir para Animais →</button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(a => {
+            const ganho = a.peso && a.peso_inicio_dieta ? parseFloat(a.peso) - parseFloat(a.peso_inicio_dieta) : null
+            const dias = diffDias(a.data_confinamento)
+            const gmd = ganho !== null && dias > 0 ? (ganho / dias).toFixed(3) : null
+
+            return (
+              <div key={a.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-4">
+                {/* Brinco + raça */}
+                <div className="flex-shrink-0 w-28">
+                  <div className="font-mono text-lg font-black text-gray-900 leading-tight">#{a.brinco}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{a.raca} · {a.categoria}</div>
+                </div>
+
+                {/* Infos confinamento */}
+                <div className="flex items-center gap-4 flex-1 min-w-0 flex-wrap">
+                  {a.data_confinamento && (
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <Calendar size={11} className="text-gray-400" />
+                      <span>{fd(a.data_confinamento)}</span>
+                      {dias !== null && <span className="text-gray-400">({dias}d)</span>}
+                    </div>
+                  )}
+                  {a.peso_inicio_dieta && (
+                    <div className="text-xs text-gray-500">
+                      Entrada: <strong className="text-gray-700">{a.peso_inicio_dieta} kg</strong>
+                    </div>
+                  )}
+                  {a.peso && (
+                    <div className="text-xs text-gray-500">
+                      Atual: <strong className="text-gray-900">{a.peso} kg</strong>
+                      {a.data_peso && <span className="text-gray-400 ml-1">({fd(a.data_peso)})</span>}
+                    </div>
+                  )}
+                  {ganho !== null && (
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 ${ganho >= 0 ? 'bg-orange-50 text-orange-500' : 'bg-red-50 text-red-400'}`}>
+                      <TrendingUp size={10} />{ganho >= 0 ? '+' : ''}{ganho.toFixed(1)} kg
+                    </span>
+                  )}
+                  {gmd && (
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-green-50 text-green-600">
+                      GMD {gmd}
+                    </span>
+                  )}
+                  {a.racao_id && racoes[a.racao_id] && (
+                    <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-lg">{racoes[a.racao_id]}</span>
+                  )}
+                </div>
+
+                {/* Ações */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => setPesoModal(a)}
+                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-100 transition-colors">
+                    <Scale size={12} /> Peso
+                  </button>
+                  <button onClick={() => setPerfilId(a.id)}
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200 transition-colors">
+                    Ver perfil <ChevronRight size={12} />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Modais */}
+      {pesoModal && (
+        <PesoModal
+          animal={pesoModal}
+          onSave={(peso, data_peso) => atualizarPesoLocal(pesoModal.id, peso, data_peso)}
+          onClose={() => setPesoModal(null)}
+        />
+      )}
+      <AnimalPerfil
+        isOpen={!!perfilId}
+        onClose={() => setPerfilId(null)}
+        animalId={perfilId}
+        onSaved={fetchDados}
       />
     </div>
   )

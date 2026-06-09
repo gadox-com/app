@@ -20,15 +20,15 @@ const PAGE_TO_ROUTE = {
 }
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'busca',     label: 'Busca Rápida', icon: Search },
-  { id: 'animais',   label: 'Animais',   icon: Beef },
+  { id: 'dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+  { id: 'busca',        label: 'Busca Rápida', icon: Search },
+  { id: 'animais',      label: 'Animais',      icon: Beef },
   { id: 'confinamento', label: 'Confinamento', icon: Home },
-  { id: 'reproducao',  label: 'Reprodução',   icon: Syringe },
-  { id: 'vendas',      label: 'Vendas',        icon: ShoppingCart },
-  { id: 'relatorios',  label: 'Relatórios',    icon: BarChart3 },
-  { id: 'fazendas',    label: 'Fazendas',      icon: Building2 },
-  { id: 'alimentacao', label: 'Alimentação',   icon: UtensilsCrossed },
+  { id: 'alimentacao',  label: 'Alimentação',  icon: UtensilsCrossed },
+  { id: 'reproducao',   label: 'Reprodução',   icon: Syringe },
+  { id: 'vendas',       label: 'Vendas',       icon: ShoppingCart },
+  { id: 'fazendas',     label: 'Fazendas',     icon: Building2 },
+  { id: 'relatorios',   label: 'Relatórios',   icon: BarChart3 },
 ]
 
 export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, user }) {
