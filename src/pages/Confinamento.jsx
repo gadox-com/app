@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { RefreshCw, Scale, ChevronRight, Search, Loader, X, TrendingUp, Calendar, Package } from 'lucide-react'
+import { RefreshCw, Scale, ChevronRight, Search, Loader, X, TrendingUp, Calendar, Package, Download } from 'lucide-react'
 import AnimalPerfil from '../components/AnimalPerfil'
 
 const fd = (d) => {
@@ -164,6 +164,123 @@ export default function Confinamento({ onNavigate }) {
     setLoading(false)
   }
 
+  const [generating, setGenerating] = useState(false)
+
+  async function exportarPDF() {
+    setGenerating(true)
+    try {
+      const { default: jsPDF } = await import('jspdf')
+      const { default: autoTable } = await import('jspdf-autotable')
+
+      // Buscar nome da fazenda
+      let nomeFazenda = 'GadoX'
+      const { data: uf } = await supabase.from('usuario_fazenda').select('fazenda_id').single()
+      if (uf?.fazenda_id) {
+        const { data: faz } = await supabase.from('fazendas').select('nome').eq('id', uf.fazenda_id).single()
+        if (faz?.nome) nomeFazenda = faz.nome
+      }
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW = doc.internal.pageSize.getWidth()
+      const pageH = doc.internal.pageSize.getHeight()
+      const hoje = new Date().toLocaleDateString('pt-BR')
+      const dataISO = new Date().toISOString().split('T')[0]
+
+      function drawHeader() {
+        doc.setFillColor(15, 15, 15)
+        doc.rect(10, 5, pageW - 20, 18, 'F')
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(11)
+        doc.setTextColor(255, 255, 255)
+        doc.text(nomeFazenda.toUpperCase(), 15, 13)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(7)
+        doc.setTextColor(180, 180, 180)
+        doc.text('FOLHA DE PESAGEM — CONFINAMENTO', 15, 19)
+        doc.setTextColor(180, 180, 180)
+        doc.text(`Data: ${hoje}  ·  ${animais.length} animais`, pageW - 15, 13, { align: 'right' })
+        doc.setTextColor(120, 120, 120)
+        doc.text('Responsável: ________________________', pageW - 15, 19, { align: 'right' })
+      }
+
+      const rows = [...animais]
+        .sort((a, b) => (a.brinco || '').localeCompare(b.brinco || '', undefined, { numeric: true }))
+        .map(a => {
+          const dias = a.data_confinamento
+            ? Math.floor((new Date() - new Date(a.data_confinamento)) / (1000*60*60*24))
+            : '—'
+          return [
+            a.brinco || '—',
+            \`\${a.raca || '—'}\`,
+            a.categoria || '—',
+            a.data_confinamento ? (() => { const [y,m,d] = a.data_confinamento.split('-'); return \`\${d}/\${m}/\${y}\` })() : '—',
+            a.peso_inicio_dieta ? \`\${a.peso_inicio_dieta} kg\` : '—',
+            a.peso ? \`\${a.peso} kg\` : '—',
+            String(dias),
+            racoes[a.racao_id] || '—',
+            '', // novo peso (preenchido à mão)
+          ]
+        })
+
+      drawHeader()
+
+      autoTable(doc, {
+        startY: 28,
+        margin: { left: 10, right: 10 },
+        head: [[
+          'Brinco', 'Raça', 'Cat.', 'Entrada', 'Peso Entrada', 'Peso Atual', 'Dias', 'Dieta', 'Novo Peso ___________'
+        ]],
+        body: rows,
+        styles: {
+          fontSize: 8.5,
+          cellPadding: { top: 3, bottom: 3, left: 2.5, right: 2.5 },
+          lineColor: [200, 200, 200],
+          lineWidth: 0.2,
+          textColor: [0, 0, 0],
+          font: 'helvetica',
+          minCellHeight: 10,
+        },
+        headStyles: {
+          fillColor: [40, 40, 40],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 7.5,
+          cellPadding: { top: 2.5, bottom: 2.5, left: 2.5, right: 2.5 },
+        },
+        alternateRowStyles: { fillColor: [250, 250, 250] },
+        columnStyles: {
+          0: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
+          1: { cellWidth: 28 },
+          2: { cellWidth: 18 },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 22, halign: 'center' },
+          5: { cellWidth: 20, halign: 'center' },
+          6: { cellWidth: 12, halign: 'center' },
+          7: { cellWidth: 25 },
+          8: { cellWidth: 'auto', halign: 'left' }, // espaço para escrever
+        },
+        didDrawPage: () => { drawHeader() },
+        showHead: 'everyPage',
+      })
+
+      // Rodapé
+      const totalPages = doc.internal.getNumberOfPages()
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i)
+        doc.setFontSize(7)
+        doc.setTextColor(160)
+        doc.text(\`Página \${i} de \${totalPages}\`, pageW - 10, pageH - 5, { align: 'right' })
+        doc.text('GadoX — folha de pesagem', 10, pageH - 5)
+      }
+
+      doc.save(\`pesagem-confinamento-\${dataISO}.pdf\`)
+    } catch (err) {
+      alert('Erro ao gerar PDF: ' + err.message)
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   function atualizarPesoLocal(animalId, peso, data_peso) {
     setAnimais(prev => prev.map(a => a.id === animalId ? { ...a, peso, data_peso } : a))
   }
@@ -193,7 +310,14 @@ export default function Confinamento({ onNavigate }) {
           <h1 className="text-2xl font-bold text-gray-900">Confinamento</h1>
           <p className="text-sm text-gray-500 mt-0.5">{animais.length} animal{animais.length !== 1 ? 'is' : ''} confinado{animais.length !== 1 ? 's' : ''}</p>
         </div>
-        <button onClick={fetchDados} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"><RefreshCw size={15} /></button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportarPDF} disabled={generating || animais.length === 0}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${animais.length > 0 ? 'bg-gray-900 hover:bg-gray-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+            {generating ? <Loader size={14} className="animate-spin" /> : <Download size={14} />}
+            {generating ? 'Gerando...' : 'Folha de Pesagem'}
+          </button>
+          <button onClick={fetchDados} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"><RefreshCw size={15} /></button>
+        </div>
       </div>
 
       {/* KPIs */}
