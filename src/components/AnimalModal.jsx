@@ -35,10 +35,14 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
   const [fotoPreview, setFotoPreview] = useState(null)
   const [fotoFile, setFotoFile] = useState(null)
   const [uploadingFoto, setUploadingFoto] = useState(false)
+  const [fazendaId, setFazendaId] = useState(null)
   const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (!isOpen) return
+    // Buscar fazenda_id do usuário
+    supabase.from('usuario_fazenda').select('fazenda_id').single()
+      .then(({ data }) => { if (data) setFazendaId(data.fazenda_id) })
     const base = animal ? {
       brinco: animal.brinco || '',
       sexo: animal.sexo || 'MACHO',
@@ -138,7 +142,7 @@ export default function AnimalModal({ isOpen, onClose, animal, onSaved }) {
         const { error: err } = await supabase.from('animais').update(payload).eq('id', animal.id)
         if (err) throw err
       } else {
-        const { data, error: err } = await supabase.from('animais').insert([{ ...payload, status: 'ATIVO' }]).select('id').single()
+        const { data, error: err } = await supabase.from('animais').insert([{ ...payload, status: 'ATIVO', fazenda_id: fazendaId }]).select('id').single()
         if (err) throw err
         savedId = data?.id
       }
