@@ -16,6 +16,7 @@ const PAGE_TO_ROUTE = {
   vendas: '/vendas',
   relatorios: '/relatorios',
   fazendas: '/fazendas',
+  alimentacao: '/alimentacao',
 }
 
 const NAV_ITEMS = [

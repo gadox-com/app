@@ -13,6 +13,7 @@ import Vendas from './pages/Vendas'
 import Relatorios from './pages/Relatorios'
 import BuscaRapida from './pages/BuscaRapida'
 import Fazendas from './pages/Fazendas'
+import Alimentacao from './pages/Alimentacao'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -43,6 +44,7 @@ const ROUTE_TO_PAGE = {
   '/vendas': 'vendas',
   '/relatorios': 'relatorios',
   '/fazendas': 'fazendas',
+  '/alimentacao': 'alimentacao',
 }
 
 const PAGE_TO_ROUTE = {
@@ -54,6 +56,7 @@ const PAGE_TO_ROUTE = {
   vendas: '/vendas',
   relatorios: '/relatorios',
   fazendas: '/fazendas',
+  alimentacao: '/alimentacao',
 }
 
 function AppInner({ session }) {
@@ -89,6 +92,7 @@ function AppInner({ session }) {
             <Route path="/vendas" element={<ErrorBoundary key="vendas"><Vendas onNavigate={handleNavigate} /></ErrorBoundary>} />
             <Route path="/relatorios" element={<ErrorBoundary key="relatorios"><Relatorios onNavigate={handleNavigate} /></ErrorBoundary>} />
             <Route path="/fazendas" element={<ErrorBoundary key="fazendas"><Fazendas /></ErrorBoundary>} />
+              <Route path="/alimentacao" element={<ErrorBoundary key="alimentacao"><Alimentacao /></ErrorBoundary>} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>

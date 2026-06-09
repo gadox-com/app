@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package, Plus, Bell, Syringe, X } from 'lucide-react'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
 import AnimalPerfil from '../components/AnimalPerfil'
@@ -223,6 +224,102 @@ export default function Dashboard({ onNavigate }) {
           <p className="text-xs text-gray-500 mt-2 capitalize">{new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' })}</p>
         </div>
 
+      </div>
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Pizza — por categoria */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Rebanho Ativo por Categoria</p>
+          {ativos.length > 0 ? (
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width={110} height={110}>
+                <PieChart>
+                  <Pie data={[
+                    { name: 'Bezerros', value: bezerros.length, color: '#fb923c' },
+                    { name: 'Novilhos', value: novilhos.length, color: '#f97316' },
+                    { name: 'Vacas', value: vacas.length, color: '#ea580c' },
+                    { name: 'Touros', value: touros.length, color: '#9a3412' },
+                    { name: 'Bois', value: bois.length, color: '#fed7aa' },
+                  ].filter(d => d.value > 0)} dataKey="value" cx="50%" cy="50%" innerRadius={28} outerRadius={50}>
+                    {[
+                      { name: 'Bezerros', value: bezerros.length, color: '#fb923c' },
+                      { name: 'Novilhos', value: novilhos.length, color: '#f97316' },
+                      { name: 'Vacas', value: vacas.length, color: '#ea580c' },
+                      { name: 'Touros', value: touros.length, color: '#9a3412' },
+                      { name: 'Bois', value: bois.length, color: '#fed7aa' },
+                    ].filter(d => d.value > 0).map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v, n) => [v, n]} contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f3f4f6' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-col gap-1.5 flex-1">
+                {[
+                  { label: 'Bezerros', value: bezerros.length, color: '#fb923c' },
+                  { label: 'Novilhos', value: novilhos.length, color: '#f97316' },
+                  { label: 'Vacas', value: vacas.length, color: '#ea580c' },
+                  { label: 'Touros', value: touros.length, color: '#9a3412' },
+                  { label: 'Bois', value: bois.length, color: '#fed7aa' },
+                ].filter(d => d.value > 0).map(d => (
+                  <div key={d.label} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
+                      <span className="text-xs text-gray-600">{d.label}</span>
+                    </div>
+                    <span className="text-xs font-bold text-gray-900">{d.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : <p className="text-xs text-gray-400 text-center py-8">Nenhum animal ativo</p>}
+        </div>
+
+        {/* Pizza — sexo */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Machos vs Fêmeas</p>
+          {ativos.length > 0 ? (
+            <div className="flex flex-col items-center gap-3">
+              <ResponsiveContainer width="100%" height={110}>
+                <PieChart>
+                  <Pie data={[
+                    { name: 'Machos', value: machos.length, color: '#f97316' },
+                    { name: 'Fêmeas', value: femeas.length, color: '#fb923c' },
+                  ].filter(d => d.value > 0)} dataKey="value" cx="50%" cy="50%" outerRadius={50}>
+                    {[{ color: '#f97316' }, { color: '#fed7aa' }].map((e, i) => <Cell key={i} fill={e.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v, n) => [v, n]} contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f3f4f6' }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex gap-6 w-full justify-center">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-orange-600">{machos.length}</div>
+                  <div className="text-xs text-gray-500">Machos <span className="text-gray-400">({pctMachos}%)</span></div>
+                </div>
+                <div className="w-px bg-gray-100" />
+                <div className="text-center">
+                  <div className="text-2xl font-black text-orange-300">{femeas.length}</div>
+                  <div className="text-xs text-gray-500">Fêmeas <span className="text-gray-400">({pctFemeas}%)</span></div>
+                </div>
+              </div>
+            </div>
+          ) : <p className="text-xs text-gray-400 text-center py-8">Nenhum animal ativo</p>}
+        </div>
+
+        {/* Barras — animais por local */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Animais por Local</p>
+          {locais.length > 0 ? (
+            <ResponsiveContainer width="100%" height={130}>
+              <BarChart data={locais.map(l => ({ name: l.length > 8 ? l.slice(0,8)+'…' : l, animais: ativos.filter(a => a.local === l).length }))} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} />
+                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
+                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f3f4f6' }} />
+                <Bar dataKey="animais" fill="#f97316" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="text-xs text-gray-400 text-center py-8">Nenhum local cadastrado</p>}
+        </div>
       </div>
 
       {/* Sexo + Confinados + Categorias */}
