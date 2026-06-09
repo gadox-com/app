@@ -190,6 +190,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
   const [vacinaObs, setVacinaObs] = useState('')
   const [vacinaRepetir, setVacinaRepetir] = useState('')
   const [savingVacina, setSavingVacina] = useState(false)
+  const [fotoAmpliada, setFotoAmpliada] = useState(false)
 
   useEffect(() => { if (isOpen && animalId) fetchAll() }, [isOpen, animalId])
   useEffect(() => {
@@ -289,7 +290,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
     if (!pesoVal) return setPesoError('Informe o peso')
     setSavingPeso(true); setPesoError('')
     try {
-      await supabase.from('peso_historico').insert([{ animal_id: animalId, peso: parseFloat(pesoVal), data_peso: pesoData }])
+      await supabase.from('peso_historico').insert([{ animal_id: animalId, peso: parseFloat(pesoVal), data_peso: pesoData, fazenda_id: animal?.fazenda_id }])
       await supabase.from('animais').update({ peso: parseFloat(pesoVal), data_peso: pesoData }).eq('id', animalId)
       await registrarLog('Registrou peso', `${pesoVal} kg`, animalId, animal?.brinco)
       setPesoVal(''); setPesoData(new Date().toISOString().split('T')[0])
@@ -316,14 +317,16 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
       d.setMonth(d.getMonth() + parseInt(vacinaRepetir))
       proxima_data = d.toISOString().split('T')[0]
     }
-    await supabase.from('vacinas').insert([{
+    const { error: vacinaErr } = await supabase.from('vacinas').insert([{
       animal_id: animalId,
+      fazenda_id: animal?.fazenda_id,
       nome: vacinaNome.trim(),
       data_aplicacao: vacinaData,
       observacao: vacinaObs.trim() || null,
       repetir_meses: vacinaRepetir ? parseInt(vacinaRepetir) : null,
       proxima_data,
     }])
+    if (vacinaErr) { setSavingVacina(false); return }
     await registrarLog('Registrou vacina', vacinaNome.trim(), animalId, animal?.brinco)
     setVacinaNome(''); setVacinaObs(''); setVacinaRepetir('')
     setVacinaData(new Date().toISOString().split('T')[0])
@@ -424,18 +427,42 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                 <div className="w-1/2 border-r border-gray-100 flex flex-col overflow-hidden">
 
                   <div className="px-5 py-4 flex-shrink-0" style={{ background: 'linear-gradient(160deg, #fff7ed 0%, #ffffff 60%)' }}>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                      {[
-                        { label: 'Raça', value: animal.raca },
-                        { label: 'Categoria', value: calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria },
-                        { label: 'Sexo', value: animal.sexo },
-                        { label: 'Local', value: animal.local },
-                      ].map(f => (
-                        <div key={f.label}>
-                          <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-0.5">{f.label}</div>
-                          <div className="text-base font-bold text-gray-900">{f.value || '—'}</div>
-                        </div>
-                      ))}
+                    <div className="flex gap-4 items-start">
+                      <div className="grid grid-cols-2 gap-x-6 gap-y-3 flex-1">
+                        {[
+                          { label: 'Raça', value: animal.raca },
+                          { label: 'Categoria', value: calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria },
+                          { label: 'Sexo', value: animal.sexo },
+                          { label: 'Local', value: animal.local },
+                        ].map(f => (
+                          <div key={f.label}>
+                            <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-0.5">{f.label}</div>
+                            <div className="text-base font-bold text-gray-900">{f.value || '—'}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Mini foto */}
+                      <div className="flex-shrink-0">
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
+                        {fotoUrl ? (
+                          <div className="relative group w-24 h-24 rounded-xl overflow-hidden cursor-pointer border border-gray-200 shadow-sm"
+                            onClick={() => setFotoAmpliada(true)}>
+                            <img src={fotoUrl} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <Camera size={16} className="text-white" />
+                            </div>
+                            {uploadingFoto && <div className="absolute inset-0 bg-white/70 flex items-center justify-center"><Loader size={14} className="text-orange-500 animate-spin" /></div>}
+                          </div>
+                        ) : (
+                          <button onClick={() => !isViewer && fileInputRef.current?.click()} disabled={uploadingFoto || isViewer}
+                            className="w-24 h-24 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-400 bg-orange-50/40 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-1 group">
+                            {uploadingFoto
+                              ? <Loader size={14} className="text-orange-400 animate-spin" />
+                              : <><Upload size={16} className="text-orange-300 group-hover:text-orange-500 transition-colors" /><span className="text-[10px] font-semibold text-orange-400">Foto</span></>
+                            }
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -555,31 +582,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                 </div>
 
                 <div className="w-1/2 flex flex-col">
-                  <div className="flex flex-col px-5 py-4 border-b border-gray-100" style={{ height: '52%' }}>
-                    <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2.5 flex-shrink-0">Foto</div>
-                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
-                    <div className="flex-1 min-h-0">
-                      {fotoUrl ? (
-                        <div className="relative group h-full rounded-xl overflow-hidden">
-                          <img src={fotoUrl} alt="" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                            <button onClick={() => fileInputRef.current?.click()} disabled={uploadingFoto} className="bg-white text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Camera size={12} /> Trocar</button>
-                            <button onClick={handleRemoverFoto} className="bg-white text-red-500 text-xs font-semibold px-3 py-1.5 rounded-lg">Remover</button>
-                          </div>
-                          {uploadingFoto && <div className="absolute inset-0 bg-white/70 flex items-center justify-center"><Loader size={20} className="text-orange-500 animate-spin" /></div>}
-                        </div>
-                      ) : (
-                        <button onClick={() => fileInputRef.current?.click()} disabled={uploadingFoto}
-                          className="w-full h-full bg-orange-50/40 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-400 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-2 group">
-                          {uploadingFoto
-                            ? <><Loader size={20} className="text-orange-400 animate-spin" /><span className="text-xs text-gray-500">Enviando...</span></>
-                            : <><Upload size={20} className="text-orange-300 group-hover:text-orange-500 transition-colors" /><span className="text-xs font-semibold text-orange-400 group-hover:text-orange-600">Adicionar foto</span><span className="text-xs text-gray-500">Comprimida automaticamente</span></>
-                          }
-                        </button>
-                      )}
-                    </div>
-                    {fotoError && <p className="text-xs text-red-500 mt-1.5 flex-shrink-0">{fotoError}</p>}
-                  </div>
 
                   <div className="flex flex-col px-5 py-4 flex-1 overflow-hidden">
                     {/* Tab switcher */}
@@ -718,6 +720,19 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
         </div>
       </div>
 
+      {/* Lightbox foto */}
+      {fotoAmpliada && fotoUrl && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setFotoAmpliada(false)}>
+          <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setFotoAmpliada(false)} className="absolute -top-10 right-0 text-white/70 hover:text-white"><X size={24} /></button>
+            <img src={fotoUrl} alt="" className="w-full rounded-2xl shadow-2xl" />
+            {!isViewer && <div className="flex gap-2 mt-3 justify-end">
+              <button onClick={() => { setFotoAmpliada(false); setTimeout(() => fileInputRef.current?.click(), 100) }} className="bg-white text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Camera size={12} /> Trocar foto</button>
+              <button onClick={() => { handleRemoverFoto(); setFotoAmpliada(false) }} className="bg-white text-red-500 text-xs font-semibold px-3 py-1.5 rounded-lg">Remover</button>
+            </div>}
+          </div>
+        </div>
+      )}
       {activeModal === 'baixa' && animal && <BaixaModal animal={animal} onConfirm={handleBaixa} onClose={() => setActiveModal(null)} />}
       {activeModal === 'venda' && animal && <VendaModal animal={animal} onConfirm={handleVenda} onClose={() => setActiveModal(null)} />}
       {animal && (
