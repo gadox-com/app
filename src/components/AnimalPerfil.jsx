@@ -159,6 +159,66 @@ function VendaModal({ animal, onConfirm, onClose }) {
   )
 }
 
+
+function DescarteModal({ animal, onConfirm, onClose }) {
+  const [motivo, setMotivo] = useState('Doença')
+  const [obs, setObs] = useState('')
+  const [loading, setLoading] = useState(false)
+  const ehMorte = motivo === 'Morte'
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="font-bold text-gray-900">Marcar para Descarte</h3>
+            <p className="text-xs text-gray-500 mt-0.5">#{animal?.brinco} — {animal?.raca}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"><X size={16} /></button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Motivo</label>
+            <div className="grid grid-cols-2 gap-2">
+              {['Morte', 'Doença', 'Inválido', 'Outro'].map(m => (
+                <button key={m} onClick={() => setMotivo(m)}
+                  className={`py-2 px-3 rounded-xl text-sm font-semibold border-2 transition-all ${motivo === m ? (m === 'Morte' ? 'border-red-600 bg-red-600 text-white' : 'border-gray-800 bg-gray-800 text-white') : 'border-gray-200 text-gray-500 hover:border-gray-400'}`}>
+                  {m === 'Morte' ? '💀 Morte' : m === 'Doença' ? '🤒 Doença' : m === 'Inválido' ? '🦽 Inválido' : '📝 Outro'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 block">Observação <span className="text-gray-300 font-normal normal-case">(opcional)</span></label>
+            <input className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-gray-400 transition-colors"
+              value={obs} onChange={e => setObs(e.target.value)}
+              placeholder="Ex: pata quebrada, não cria, animal agressivo..." />
+          </div>
+          {ehMorte && (
+            <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-xs text-red-600 font-medium">
+              ⚠️ Animal será marcado como <strong>inativo</strong> no sistema.
+            </div>
+          )}
+          {!ehMorte && (
+            <div className="bg-yellow-50 border border-yellow-100 rounded-xl px-3 py-2.5 text-xs text-yellow-700 font-medium">
+              🚩 Animal ficará marcado para descarte — sair na próxima venda.
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 mt-5">
+          <button onClick={onClose} className="flex-1 py-2 px-4 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
+          <button
+            onClick={async () => { setLoading(true); await onConfirm({ motivo, obs, ehMorte }); setLoading(false) }}
+            disabled={loading}
+            className={`flex-1 py-2 px-4 rounded-xl text-white text-sm font-bold transition-colors flex items-center justify-center gap-2 ${ehMorte ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-800 hover:bg-gray-900'}`}>
+            <Flag size={13} />{loading ? 'Salvando...' : ehMorte ? 'Confirmar Morte' : 'Marcar Descarte'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onRequestEdit }) {
   const { isViewer } = useRole()
   const [animal, setAnimal] = useState(null)
@@ -275,12 +335,35 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
   }
 
   async function toggleDescarte() {
-    setTogglingDescarte(true)
-    const novo = !animal.descarte
-    await supabase.from('animais').update({ descarte: novo }).eq('id', animalId)
-    setAnimal(a => ({ ...a, descarte: novo }))
-    await registrarLog(novo ? 'Marcou para descarte' : 'Removeu descarte', null, animalId, animal?.brinco)
-    setTogglingDescarte(false); onSaved?.()
+    if (animal.descarte) {
+      // Remover descarte diretamente
+      setTogglingDescarte(true)
+      await supabase.from('animais').update({ descarte: false, motivo_saida: null }).eq('id', animalId)
+      setAnimal(a => ({ ...a, descarte: false }))
+      await registrarLog('Removeu descarte', null, animalId, animal?.brinco)
+      setTogglingDescarte(false); onSaved?.()
+    } else {
+      setActiveModal('descarte')
+    }
+  }
+
+  async function handleDescarte({ motivo, obs, ehMorte }) {
+    if (ehMorte) {
+      await supabase.from('animais').update({
+        status: 'VENDIDO', local: 'VENDIDO',
+        motivo_saida: 'Morte', saida: new Date().toISOString().split('T')[0],
+        descarte: false,
+        observacao: obs || animal.observacao
+      }).eq('id', animalId)
+      await registrarLog('Óbito registrado', obs || null, animalId, animal?.brinco)
+    } else {
+      await supabase.from('animais').update({
+        descarte: true,
+        motivo_saida: `${motivo}${obs ? ': ' + obs : ''}`
+      }).eq('id', animalId)
+      await registrarLog('Marcou para descarte', `${motivo}${obs ? ': ' + obs : ''}`, animalId, animal?.brinco)
+    }
+    setActiveModal(null); fetchAll(); onSaved?.()
   }
 
   async function toggleConfinado() {
@@ -433,7 +516,30 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
 
                   <div className="px-5 py-4 flex-shrink-0" style={{ background: 'linear-gradient(160deg, #fff7ed 0%, #ffffff 60%)' }}>
                     <div className="flex gap-4 items-start">
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-3 flex-1">
+                      {/* Foto à esquerda */}
+                      <div className="flex-shrink-0">
+                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
+                        {fotoUrl ? (
+                          <div className="relative group w-28 h-28 rounded-xl overflow-hidden cursor-pointer border border-gray-200 shadow-sm"
+                            onClick={() => setFotoAmpliada(true)}>
+                            <img src={fotoUrl} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <Camera size={16} className="text-white" />
+                            </div>
+                            {uploadingFoto && <div className="absolute inset-0 bg-white/70 flex items-center justify-center"><Loader size={14} className="text-orange-500 animate-spin" /></div>}
+                          </div>
+                        ) : (
+                          <button onClick={() => !isViewer && fileInputRef.current?.click()} disabled={uploadingFoto || isViewer}
+                            className="w-28 h-28 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-400 bg-orange-50/40 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-1 group">
+                            {uploadingFoto
+                              ? <Loader size={14} className="text-orange-400 animate-spin" />
+                              : <><Upload size={18} className="text-orange-300 group-hover:text-orange-500 transition-colors" /><span className="text-[10px] font-semibold text-orange-400">Foto</span></>
+                            }
+                          </button>
+                        )}
+                      </div>
+                      {/* Grid raça/categoria/sexo/local à direita */}
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-3 flex-1">
                         {[
                           { label: 'Raça', value: animal.raca },
                           { label: 'Categoria', value: calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria },
@@ -445,28 +551,6 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                             <div className="text-base font-bold text-gray-900">{f.value || '—'}</div>
                           </div>
                         ))}
-                      </div>
-                      {/* Mini foto */}
-                      <div className="flex-shrink-0">
-                        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
-                        {fotoUrl ? (
-                          <div className="relative group w-24 h-24 rounded-xl overflow-hidden cursor-pointer border border-gray-200 shadow-sm"
-                            onClick={() => setFotoAmpliada(true)}>
-                            <img src={fotoUrl} alt="" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <Camera size={16} className="text-white" />
-                            </div>
-                            {uploadingFoto && <div className="absolute inset-0 bg-white/70 flex items-center justify-center"><Loader size={14} className="text-orange-500 animate-spin" /></div>}
-                          </div>
-                        ) : (
-                          <button onClick={() => !isViewer && fileInputRef.current?.click()} disabled={uploadingFoto || isViewer}
-                            className="w-24 h-24 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-400 bg-orange-50/40 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-1 group">
-                            {uploadingFoto
-                              ? <Loader size={14} className="text-orange-400 animate-spin" />
-                              : <><Upload size={16} className="text-orange-300 group-hover:text-orange-500 transition-colors" /><span className="text-[10px] font-semibold text-orange-400">Foto</span></>
-                            }
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -766,6 +850,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
       )}
       {activeModal === 'baixa' && animal && <BaixaModal animal={animal} onConfirm={handleBaixa} onClose={() => setActiveModal(null)} />}
       {activeModal === 'venda' && animal && <VendaModal animal={animal} onConfirm={handleVenda} onClose={() => setActiveModal(null)} />}
+      {activeModal === 'descarte' && animal && <DescarteModal animal={animal} onConfirm={handleDescarte} onClose={() => setActiveModal(null)} />}
       {animal && (
         <>
           <ConfinamentoModal isOpen={activeModal === 'conf'} onClose={() => { setActiveModal(null); fetchAll() }} animal={animal} />
