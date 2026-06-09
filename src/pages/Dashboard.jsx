@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package, Plus, Bell, Syringe, X } from 'lucide-react'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
 import AnimalPerfil from '../components/AnimalPerfil'
@@ -226,122 +225,28 @@ export default function Dashboard({ onNavigate }) {
 
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* Pizza — por categoria */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Rebanho Ativo por Categoria</p>
-          {ativos.length > 0 ? (
-            <div className="flex items-center gap-4">
-              <ResponsiveContainer width={110} height={110}>
-                <PieChart>
-                  <Pie data={[
-                    { name: 'Bezerros', value: bezerros.length, color: '#fb923c' },
-                    { name: 'Novilhos', value: novilhos.length, color: '#f97316' },
-                    { name: 'Vacas', value: vacas.length, color: '#ea580c' },
-                    { name: 'Touros', value: touros.length, color: '#9a3412' },
-                    { name: 'Bois', value: bois.length, color: '#fed7aa' },
-                  ].filter(d => d.value > 0)} dataKey="value" cx="50%" cy="50%" innerRadius={28} outerRadius={50}>
-                    {[
-                      { name: 'Bezerros', value: bezerros.length, color: '#fb923c' },
-                      { name: 'Novilhos', value: novilhos.length, color: '#f97316' },
-                      { name: 'Vacas', value: vacas.length, color: '#ea580c' },
-                      { name: 'Touros', value: touros.length, color: '#9a3412' },
-                      { name: 'Bois', value: bois.length, color: '#fed7aa' },
-                    ].filter(d => d.value > 0).map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v, n) => [v, n]} contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f3f4f6' }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-col gap-1.5 flex-1">
-                {[
-                  { label: 'Bezerros', value: bezerros.length, color: '#fb923c' },
-                  { label: 'Novilhos', value: novilhos.length, color: '#f97316' },
-                  { label: 'Vacas', value: vacas.length, color: '#ea580c' },
-                  { label: 'Touros', value: touros.length, color: '#9a3412' },
-                  { label: 'Bois', value: bois.length, color: '#fed7aa' },
-                ].filter(d => d.value > 0).map(d => (
-                  <div key={d.label} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
-                      <span className="text-xs text-gray-600">{d.label}</span>
-                    </div>
-                    <span className="text-xs font-bold text-gray-900">{d.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : <p className="text-xs text-gray-400 text-center py-8">Nenhum animal ativo</p>}
-        </div>
 
-        {/* Pizza — sexo */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Machos vs Fêmeas</p>
-          {ativos.length > 0 ? (
-            <div className="flex flex-col items-center gap-3">
-              <ResponsiveContainer width="100%" height={110}>
-                <PieChart>
-                  <Pie data={[
-                    { name: 'Machos', value: machos.length, color: '#f97316' },
-                    { name: 'Fêmeas', value: femeas.length, color: '#fb923c' },
-                  ].filter(d => d.value > 0)} dataKey="value" cx="50%" cy="50%" outerRadius={50}>
-                    {[{ color: '#f97316' }, { color: '#fed7aa' }].map((e, i) => <Cell key={i} fill={e.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v, n) => [v, n]} contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f3f4f6' }} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex gap-6 w-full justify-center">
-                <div className="text-center">
-                  <div className="text-2xl font-black text-orange-600">{machos.length}</div>
-                  <div className="text-xs text-gray-500">Machos <span className="text-gray-400">({pctMachos}%)</span></div>
-                </div>
-                <div className="w-px bg-gray-100" />
-                <div className="text-center">
-                  <div className="text-2xl font-black text-orange-300">{femeas.length}</div>
-                  <div className="text-xs text-gray-500">Fêmeas <span className="text-gray-400">({pctFemeas}%)</span></div>
-                </div>
-              </div>
-            </div>
-          ) : <p className="text-xs text-gray-400 text-center py-8">Nenhum animal ativo</p>}
-        </div>
 
-        {/* Barras — animais por local */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Animais por Local</p>
-          {locais.length > 0 ? (
-            <ResponsiveContainer width="100%" height={130}>
-              <BarChart data={locais.map(l => ({ name: l.length > 8 ? l.slice(0,8)+'…' : l, animais: ativos.filter(a => a.local === l).length }))} margin={{ top: 0, right: 0, left: -28, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} />
-                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
-                <Tooltip contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #f3f4f6' }} />
-                <Bar dataKey="animais" fill="#f97316" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <p className="text-xs text-gray-400 text-center py-8">Nenhum local cadastrado</p>}
-        </div>
-      </div>
+      {/* 4 boxes: Sexo · Confinamento · Categorias · Por Fazenda */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
-      {/* Sexo + Confinados + Categorias */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-
-        {/* Sexo */}
+        {/* Distribuição por Sexo */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-5">Distribuição por Sexo</p>
-          <div className="space-y-4">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Distribuição por Sexo</p>
+          <div className="space-y-3">
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-medium text-gray-700">Machos</span>
-                <span className="text-sm font-bold text-gray-900">{machos.length} <span className="text-xs font-normal text-gray-500">({pctMachos}%)</span></span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-600">Machos</span>
+                <span className="text-sm font-bold text-gray-900">{machos.length} <span className="text-xs font-normal text-gray-400">({pctMachos}%)</span></span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-orange-500 to-orange-300 rounded-full transition-all" style={{ width: `${pctMachos}%` }} />
               </div>
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-medium text-gray-700">Fêmeas</span>
-                <span className="text-sm font-bold text-gray-900">{femeas.length} <span className="text-xs font-normal text-gray-500">({pctFemeas}%)</span></span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-600">Fêmeas</span>
+                <span className="text-sm font-bold text-gray-900">{femeas.length} <span className="text-xs font-normal text-gray-400">({pctFemeas}%)</span></span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-gray-300 rounded-full transition-all" style={{ width: `${pctFemeas}%` }} />
@@ -350,23 +255,23 @@ export default function Dashboard({ onNavigate }) {
           </div>
         </div>
 
-        {/* Confinados / Soltos */}
+        {/* Confinamento */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-5">Confinamento</p>
-          <div className="space-y-4">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Confinamento</p>
+          <div className="space-y-3">
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-medium text-gray-700">Confinados</span>
-                <span className="text-sm font-bold text-gray-900">{confinados.length} <span className="text-xs font-normal text-gray-500">({ativos.length ? ((confinados.length/ativos.length)*100).toFixed(0) : 0}%)</span></span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-600">Confinados</span>
+                <span className="text-sm font-bold text-gray-900">{confinados.length} <span className="text-xs font-normal text-gray-400">({ativos.length ? ((confinados.length/ativos.length)*100).toFixed(0) : 0}%)</span></span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all" style={{ width: ativos.length ? `${(confinados.length/ativos.length)*100}%` : '0%' }} />
               </div>
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-medium text-gray-700">Soltos</span>
-                <span className="text-sm font-bold text-gray-900">{soltos.length} <span className="text-xs font-normal text-gray-500">({ativos.length ? ((soltos.length/ativos.length)*100).toFixed(0) : 0}%)</span></span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-600">Soltos</span>
+                <span className="text-sm font-bold text-gray-900">{soltos.length} <span className="text-xs font-normal text-gray-400">({ativos.length ? ((soltos.length/ativos.length)*100).toFixed(0) : 0}%)</span></span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-gray-300 rounded-full transition-all" style={{ width: ativos.length ? `${(soltos.length/ativos.length)*100}%` : '0%' }} />
@@ -375,10 +280,10 @@ export default function Dashboard({ onNavigate }) {
           </div>
         </div>
 
-        {/* Categorias */}
+        {/* Por Categoria */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Por Categoria</p>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="space-y-2">
             {[
               { label: 'Bezerros', value: bezerros.length },
               { label: 'Novilhos', value: novilhos.length },
@@ -386,47 +291,39 @@ export default function Dashboard({ onNavigate }) {
               { label: 'Touros', value: touros.length },
               { label: 'Bois', value: bois.length },
             ].map(c => (
-              <div key={c.label} className="bg-gray-50 rounded-xl p-3 text-center">
-                <div className="text-xl font-bold text-gray-900">{c.value}</div>
-                <div className="text-xs text-gray-500 mt-0.5 leading-tight">{c.label}</div>
+              <div key={c.label} className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">{c.label}</span>
+                <span className="text-sm font-bold text-gray-900">{c.value}</span>
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Cards por fazenda — só contagem */}
-      <div>
-        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Animais por Fazenda</p>
-        <div className="grid grid-cols-3 gap-4">
-          {locais.length === 0 ? (
-            <div className="col-span-3 text-center py-6 text-gray-400 text-sm">Nenhum local cadastrado — cadastre em Fazendas</div>
-          ) : locais.map((nome) => {
-            const lista = ativos.filter(a => a.local === nome)
-            const cats = CATEGORIAS_ORDER
-              .map(c => ({ cat: c, count: lista.filter(a => a.categoria === c).length }))
-              .filter(x => x.count > 0)
-            return (
-              <div key={nome} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="font-bold text-gray-900">{nome.charAt(0) + nome.slice(1).toLowerCase()}</span>
-                  <span className="text-2xl font-black text-orange-500">{lista.length}</span>
-                </div>
-                {cats.length === 0
-                  ? <p className="text-xs text-gray-500">Nenhum animal ativo</p>
-                  : <div className="space-y-1.5">
-                      {cats.map(({ cat, count }) => (
-                        <div key={cat} className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">{cat.charAt(0) + cat.slice(1).toLowerCase()}</span>
-                          <span className="text-xs font-bold text-gray-800">{count}</span>
-                        </div>
-                      ))}
+        {/* Por Fazenda/Local */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Por Fazenda</p>
+          {locais.length === 0
+            ? <p className="text-xs text-gray-400">Nenhum local cadastrado</p>
+            : <div className="space-y-2">
+                {locais.map(nome => {
+                  const count = ativos.filter(a => a.local === nome).length
+                  const pct = ativos.length ? Math.round((count / ativos.length) * 100) : 0
+                  return (
+                    <div key={nome}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm text-gray-600 truncate">{nome.charAt(0) + nome.slice(1).toLowerCase()}</span>
+                        <span className="text-sm font-bold text-gray-900 ml-2 flex-shrink-0">{count}</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-orange-400 to-orange-200 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
-                }
+                  )
+                })}
               </div>
-            )
-          })}
+          }
         </div>
+
       </div>
 
 

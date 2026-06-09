@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Home, Syringe, ShoppingCart,
-  BarChart3, Menu, Beef, LogOut, Search, Building2,
+  BarChart3, Menu, Beef, LogOut, Search, Building2, UtensilsCrossed,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { id: 'vendas',      label: 'Vendas',        icon: ShoppingCart },
   { id: 'relatorios',  label: 'Relatórios',    icon: BarChart3 },
   { id: 'fazendas',    label: 'Fazendas',      icon: Building2 },
+  { id: 'alimentacao', label: 'Alimentação',   icon: UtensilsCrossed },
 ]
 
 export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, user }) {
