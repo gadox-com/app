@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package, Plus } from 'lucide-react'
+import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package, Plus, Bell, Syringe, X } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
 import AnimalPerfil from '../components/AnimalPerfil'
@@ -23,6 +23,7 @@ export default function Dashboard({ onNavigate }) {
   const [error, setError] = useState(null)
   const [perfilId, setPerfilId] = useState(null)
   const [logs, setLogs] = useState([])
+  const [alertas, setAlertas] = useState([])
 
   const [userName, setUserName] = useState('')
   const hour = new Date().getHours()
@@ -30,6 +31,20 @@ export default function Dashboard({ onNavigate }) {
 
   useEffect(() => { fetchData() }, [])
   useEffect(() => { fetchLogs() }, [])
+  useEffect(() => { fetchAlertas() }, [])
+
+  async function fetchAlertas() {
+    const hoje = new Date().toISOString().split('T')[0]
+    const limite = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const { data } = await supabase
+      .from('vacinas')
+      .select('*, animais(brinco, raca)')
+      .not('proxima_data', 'is', null)
+      .lte('proxima_data', limite)
+      .order('proxima_data', { ascending: true })
+    setAlertas(data || [])
+  }
+
   async function fetchLogs() {
     const { data } = await supabase
       .from('activity_log')
@@ -318,6 +333,44 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
 
+
+      {/* Painel de Alertas */}
+      {alertas.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Alertas</p>
+              <span className="bg-red-100 text-red-500 text-xs font-bold px-2 py-0.5 rounded-full">{alertas.length}</span>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-orange-100 shadow-sm overflow-hidden">
+            <div className="divide-y divide-gray-50">
+              {alertas.map(a => {
+                const dias = Math.ceil((new Date(a.proxima_data) - new Date()) / (1000 * 60 * 60 * 24))
+                const vencida = dias < 0
+                const urgente = dias <= 7
+                return (
+                  <div key={a.id} className={`flex items-center gap-4 px-5 py-3.5 ${vencida ? 'bg-red-50' : urgente ? 'bg-yellow-50' : ''}`}>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${vencida ? 'bg-red-100' : urgente ? 'bg-yellow-100' : 'bg-orange-50'}`}>
+                      <Syringe size={14} className={vencida ? 'text-red-500' : urgente ? 'text-yellow-600' : 'text-orange-400'} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded">#{a.animais?.brinco}</span>
+                        <span className="text-sm font-semibold text-gray-900 truncate">{a.nome}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">{a.animais?.raca} · próxima dose: {new Date(a.proxima_data).toLocaleDateString('pt-BR')}</div>
+                    </div>
+                    <div className={`text-xs font-bold px-2.5 py-1 rounded-xl flex-shrink-0 ${vencida ? 'bg-red-100 text-red-600' : urgente ? 'bg-yellow-100 text-yellow-700' : 'bg-orange-50 text-orange-500'}`}>
+                      {vencida ? `Atrasada ${Math.abs(dias)}d` : dias === 0 ? 'Hoje' : `Em ${dias}d`}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Últimas alterações */}
       <div>
