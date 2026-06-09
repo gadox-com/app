@@ -602,28 +602,12 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                       )}
                       {animal.cor && <InfoRow label="Cor" value={animal.cor} />}
                       <InfoRow label="Confinado" value={animal.confinado ? 'Sim' : 'Não'} />
-                      {animal.confinado && !isViewer && (
-                        <div className="flex items-center justify-between py-2.5 px-3.5 border-b border-gray-100 last:border-0">
-                          <span className="text-sm text-gray-500">Dieta</span>
-                          <select
-                            className="text-sm font-semibold text-gray-900 bg-transparent outline-none cursor-pointer"
-                            value={animal.racao_id || ''}
-                            onChange={async e => {
-                              const racaoId = e.target.value || null
-                              const pesoAtual = animal.peso || null
-                              const dataHoje = new Date().toISOString().split('T')[0]
-                              await supabase.from('animais').update({
-                                racao_id: racaoId,
-                                racao_data_inicio: racaoId ? dataHoje : null,
-                                peso_inicio_dieta: racaoId ? pesoAtual : null,
-                              }).eq('id', animalId)
-                              setAnimal(a => ({ ...a, racao_id: racaoId }))
-                              onSaved?.()
-                            }}>
-                            <option value="">Sem dieta</option>
-                            {racoes.map(r => <option key={r.id} value={r.id}>{r.nome}</option>)}
-                          </select>
-                        </div>
+                      {animal.confinado && (
+                        <InfoRow label="Dieta" value={
+                          animal.racao_id
+                            ? (racoes.find(r => r.id === animal.racao_id)?.nome || '—')
+                            : '—'
+                        } />
                       )}
                       {animal.confinado && animal.racao_id && (
                         <InfoRow label="Início dieta" value={animal.racao_data_inicio ? (() => { const [y,m,d] = animal.racao_data_inicio.split('-'); return `${d}/${m}/${y}` })() : '—'} />

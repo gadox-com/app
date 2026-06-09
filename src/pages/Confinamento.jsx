@@ -15,6 +15,63 @@ const diffDias = (d) => {
   return dias
 }
 
+function HistPesoModal({ animal, onClose }) {
+  const [pesos, setPesos] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.from('peso_historico')
+      .select('*')
+      .eq('animal_id', animal.id)
+      .order('data_peso', { ascending: false })
+      .then(({ data }) => { setPesos(data || []); setLoading(false) })
+  }, [animal.id])
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl p-5 w-full max-w-sm max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div>
+            <h3 className="font-bold text-gray-900">Histórico de Pesos</h3>
+            <p className="text-xs text-gray-500">Brinco #{animal.brinco} · {animal.raca}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X size={15} /></button>
+        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-8"><div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>
+        ) : pesos.length === 0 ? (
+          <div className="text-center py-8 text-sm text-gray-400">Nenhuma pesagem registrada</div>
+        ) : (
+          <div className="flex-1 overflow-y-auto space-y-1">
+            {pesos.map((p, i) => {
+              const ant = pesos[i + 1]
+              const ganho = ant ? (parseFloat(p.peso) - parseFloat(ant.peso)).toFixed(1) : null
+              return (
+                <div key={p.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <div>
+                    <div className="font-mono font-black text-gray-900 text-base leading-tight">{p.peso} kg</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{fd(p.data_peso)}{p.observacao ? ` · ${p.observacao}` : ''}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {i === 0 && <span className="text-[10px] font-bold bg-orange-50 text-orange-400 px-1.5 py-0.5 rounded">Atual</span>}
+                    {ganho !== null && (
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${parseFloat(ganho) >= 0 ? 'bg-orange-50 text-orange-500' : 'bg-red-50 text-red-400'}`}>
+                        {parseFloat(ganho) >= 0 ? '+' : ''}{ganho}kg
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        <button onClick={onClose} className="mt-4 w-full py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold hover:bg-gray-200 flex-shrink-0">Fechar</button>
+      </div>
+    </div>
+  )
+}
+
 function PesoModal({ animal, onSave, onClose }) {
   const [peso, setPeso] = useState('')
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
@@ -86,6 +143,7 @@ export default function Confinamento({ onNavigate }) {
   const [search, setSearch] = useState('')
   const [pesoModal, setPesoModal] = useState(null)
   const [perfilId, setPerfilId] = useState(null)
+  const [histModal, setHistModal] = useState(null) // animal para ver histórico de pesos
 
   useEffect(() => { fetchDados() }, [])
 
@@ -189,50 +247,54 @@ export default function Confinamento({ onNavigate }) {
                   <div className="text-xs text-gray-500 mt-0.5">{a.raca} · {a.categoria}</div>
                 </div>
 
-                {/* Infos confinamento */}
-                <div className="flex items-center gap-4 flex-1 min-w-0 flex-wrap">
-                  {a.data_confinamento && (
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <Calendar size={11} className="text-gray-400" />
-                      <span>{fd(a.data_confinamento)}</span>
-                      {dias !== null && <span className="text-gray-400">({dias}d)</span>}
-                    </div>
-                  )}
-                  {a.peso_inicio_dieta && (
-                    <div className="text-xs text-gray-500">
-                      Entrada: <strong className="text-gray-700">{a.peso_inicio_dieta} kg</strong>
-                    </div>
-                  )}
-                  {a.peso && (
-                    <div className="text-xs text-gray-500">
-                      Atual: <strong className="text-gray-900">{a.peso} kg</strong>
-                      {a.data_peso && <span className="text-gray-400 ml-1">({fd(a.data_peso)})</span>}
-                    </div>
-                  )}
-                  {ganho !== null && (
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 ${ganho >= 0 ? 'bg-orange-50 text-orange-500' : 'bg-red-50 text-red-400'}`}>
-                      <TrendingUp size={10} />{ganho >= 0 ? '+' : ''}{ganho.toFixed(1)} kg
-                    </span>
-                  )}
-                  {gmd && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-green-50 text-green-600">
-                      GMD {gmd}
-                    </span>
-                  )}
+                {/* Infos confinamento — layout compacto em colunas */}
+                <div className="flex items-center gap-5 flex-1 min-w-0">
+                  {/* Entrada */}
+                  <div className="text-center min-w-[56px]">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Entrada</div>
+                    <div className="text-sm font-bold text-gray-900">{a.peso_inicio_dieta ? `${a.peso_inicio_dieta} kg` : '—'}</div>
+                    {a.data_confinamento && <div className="text-[10px] text-gray-400">{fd(a.data_confinamento)}</div>}
+                  </div>
+                  {/* Seta */}
+                  <div className="text-gray-300 text-sm">→</div>
+                  {/* Atual */}
+                  <div className="text-center min-w-[56px]">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Atual</div>
+                    <div className="text-sm font-bold text-gray-900">{a.peso ? `${a.peso} kg` : '—'}</div>
+                    {a.data_peso && <div className="text-[10px] text-gray-400">{fd(a.data_peso)}</div>}
+                  </div>
+                  {/* Ganho + GMD */}
+                  <div className="flex flex-col gap-1">
+                    {ganho !== null && (
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${ganho >= 0 ? 'bg-orange-50 text-orange-500' : 'bg-red-50 text-red-400'}`}>
+                        {ganho >= 0 ? '+' : ''}{ganho.toFixed(1)} kg
+                      </span>
+                    )}
+                    {gmd && <span className="text-xs font-bold px-2 py-0.5 rounded-lg bg-green-50 text-green-600">GMD {gmd}</span>}
+                  </div>
+                  {/* Dieta */}
                   {a.racao_id && racoes[a.racao_id] && (
-                    <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-lg">{racoes[a.racao_id]}</span>
+                    <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-lg whitespace-nowrap">{racoes[a.racao_id]}</span>
+                  )}
+                  {/* Dias */}
+                  {dias !== null && (
+                    <span className="text-xs text-gray-400 ml-auto flex-shrink-0">{dias}d</span>
                   )}
                 </div>
 
                 {/* Ações */}
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button onClick={() => setPesoModal(a)}
                     className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-100 transition-colors">
                     <Scale size={12} /> Peso
                   </button>
+                  <button onClick={() => setHistModal(a)} title="Histórico de pesos"
+                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-200 transition-colors">
+                    <TrendingUp size={12} />
+                  </button>
                   <button onClick={() => setPerfilId(a.id)}
                     className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200 transition-colors">
-                    Ver perfil <ChevronRight size={12} />
+                    Perfil <ChevronRight size={12} />
                   </button>
                 </div>
               </div>
@@ -242,6 +304,7 @@ export default function Confinamento({ onNavigate }) {
       )}
 
       {/* Modais */}
+      {histModal && <HistPesoModal animal={histModal} onClose={() => setHistModal(null)} />}
       {pesoModal && (
         <PesoModal
           animal={pesoModal}

@@ -39,6 +39,7 @@ export default function Relatorios() {
   const [locais, setLocais] = useState([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [fazendaNome, setFazendaNome] = useState('GadoX')
   const [filters, setFilters] = useState({
     status: 'ATIVO',
     local: 'Todos',
@@ -58,6 +59,12 @@ export default function Relatorios() {
 
   async function fetchAnimais() {
     setLoading(true)
+    // Buscar nome da fazenda
+    const { data: uf } = await supabase.from('usuario_fazenda').select('fazenda_id').single()
+    if (uf?.fazenda_id) {
+      const { data: faz } = await supabase.from('fazendas').select('nome').eq('id', uf.fazenda_id).single()
+      if (faz?.nome) setFazendaNome(faz.nome)
+    }
     let all = [], from = 0
     while (true) {
       const { data } = await supabase.from('animais').select('*').order('brinco').range(from, from + 999)
@@ -165,29 +172,15 @@ export default function Relatorios() {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(10)
         doc.setTextColor(255, 255, 255)
-        doc.text('FAZENDA SÃO BRÁS', marginX + 5, 12)
+        doc.text((fazendaNome || 'GadoX').toUpperCase(), marginX + 5, 12)
 
-        // Filtros ativos como pills
+        // Filtros ativos
         let infoTxt = `${hoje}  ·  ${filtered.length} animais`
         if (filters.status !== 'Todos') infoTxt += `  ·  ${filters.status}`
         if (filters.categoria !== 'Todas') infoTxt += `  ·  ${filters.categoria}`
-        if (filters.faixaPeso !== 'Todos') {
-      r = r.filter(a => {
-        const p = parseFloat(a.peso)
-        if (!p) return false
-        if (filters.faixaPeso === '50-100') return p >= 50 && p <= 100
-        if (filters.faixaPeso === '100-150') return p > 100 && p <= 150
-        if (filters.faixaPeso === '150-200') return p > 150 && p <= 200
-        if (filters.faixaPeso === '200-250') return p > 200 && p <= 250
-        if (filters.faixaPeso === '250-300') return p > 250 && p <= 300
-        if (filters.faixaPeso === '300+') return p > 300
-        return true
-      })
-    }
-    if (filters.apenasDescarte) r = r.filter(a => a.descarte)
-    if (filters.faixaMeses !== 'Todos') {
-          const fl = FAIXA_MESES.find(f => f.value === filters.faixaMeses)
-          if (fl) infoTxt += `  ·  ${fl.label}`
+        if (filters.faixaMeses.length > 0) {
+          const labels = filters.faixaMeses.map(v => FAIXA_MESES.find(f => f.value === v)?.label).filter(Boolean)
+          if (labels.length) infoTxt += `  ·  ${labels.join(', ')}`
         }
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(6.5)
