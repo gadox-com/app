@@ -1,7 +1,8 @@
 import {
   LayoutDashboard, Home, Syringe, ShoppingCart,
-  BarChart3, Menu, Beef, LogOut, Search, Building2, UtensilsCrossed,
+  BarChart3, Menu, X, Beef, LogOut, Search, Building2, UtensilsCrossed,
 } from 'lucide-react'
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { LOGO_BASE64 } from '../assets/logo.js'
@@ -31,7 +32,16 @@ const NAV_ITEMS = [
   { id: 'relatorios',   label: 'Relatórios',   icon: BarChart3 },
 ]
 
+const MAIS_ITEMS = [
+  { id: 'confinamento', label: 'Confinamento', icon: Home },
+  { id: 'alimentacao',  label: 'Alimentação',  icon: UtensilsCrossed },
+  { id: 'reproducao',   label: 'Reprodução',   icon: Syringe },
+  { id: 'vendas',       label: 'Vendas',       icon: ShoppingCart },
+  { id: 'fazendas',     label: 'Fazendas',     icon: Building2 },
+]
+
 export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, user }) {
+  const [drawerOpen, setDrawerOpen] = useState(false)
   async function handleLogout() {
     await supabase.auth.signOut()
   }
@@ -114,33 +124,71 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
 
       {/* ── MOBILE BOTTOM NAV ───────────────────────────────────────── */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 safe-area-pb">
+        {/* 4 itens fixos principais */}
         <div className="flex items-stretch">
-          {NAV_ITEMS.map((item) => {
+          {[
+            { id: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
+            { id: 'busca',      label: 'Busca',      icon: Search },
+            { id: 'animais',    label: 'Animais',    icon: Beef },
+            { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
+          ].map(item => {
             const Icon = item.icon
             const isActive = currentPage === item.id
             return (
-              <Link
-                key={item.id}
-                to={PAGE_TO_ROUTE[item.id]}
-                className={`
-                  flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-w-0
-                  transition-colors duration-150 relative
-                  ${isActive ? 'text-orange-500' : 'text-gray-500'}
-                `}
-              >
+              <Link key={item.id} to={PAGE_TO_ROUTE[item.id]}
+                className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 relative transition-colors ${isActive ? 'text-orange-500' : 'text-gray-400'}`}>
                 {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-orange-500 rounded-full" />}
-                <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
-                <span className={`text-xs font-semibold truncate w-full text-center px-0.5 ${isActive ? 'text-orange-500' : 'text-gray-500'}`}>
-                  {item.label}
-                </span>
+                <Icon size={22} strokeWidth={isActive ? 2.2 : 1.8} />
+                <span className="text-[11px] font-semibold">{item.label}</span>
               </Link>
             )
           })}
-          <button onClick={handleLogout} className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-gray-500 hover:text-red-400 transition-colors">
-            <LogOut size={20} strokeWidth={1.8} />
-            <span className="text-xs font-semibold">Sair</span>
+          {/* Botão Mais */}
+          <button onClick={() => setDrawerOpen(v => !v)}
+            className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 relative transition-colors ${
+              MAIS_ITEMS.some(i => i.id === currentPage) ? 'text-orange-500' : 'text-gray-400'
+            }`}>
+            {MAIS_ITEMS.some(i => i.id === currentPage) &&
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-orange-500 rounded-full" />}
+            <Menu size={22} strokeWidth={1.8} />
+            <span className="text-[11px] font-semibold">Mais</span>
           </button>
         </div>
+
+        {/* Drawer com demais itens */}
+        {drawerOpen && (
+          <>
+            <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setDrawerOpen(false)} />
+            <div className="fixed bottom-[57px] left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-xl rounded-t-2xl">
+              <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                <span className="text-sm font-bold text-gray-700">Mais opções</span>
+                <button onClick={() => setDrawerOpen(false)} className="p-1 text-gray-400"><X size={18} /></button>
+              </div>
+              <div className="grid grid-cols-4 pb-4">
+                {MAIS_ITEMS.map(item => {
+                  const Icon = item.icon
+                  const isActive = currentPage === item.id
+                  return (
+                    <Link key={item.id} to={PAGE_TO_ROUTE[item.id]} onClick={() => setDrawerOpen(false)}
+                      className={`flex flex-col items-center justify-center py-4 gap-1.5 transition-colors ${isActive ? 'text-orange-500' : 'text-gray-500'}`}>
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isActive ? 'bg-orange-50' : 'bg-gray-100'}`}>
+                        <Icon size={22} strokeWidth={isActive ? 2.2 : 1.8} />
+                      </div>
+                      <span className="text-xs font-semibold text-center leading-tight">{item.label}</span>
+                    </Link>
+                  )
+                })}
+                <button onClick={handleLogout}
+                  className="flex flex-col items-center justify-center py-4 gap-1.5 text-gray-400">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+                    <LogOut size={22} strokeWidth={1.8} />
+                  </div>
+                  <span className="text-xs font-semibold">Sair</span>
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </nav>
     </>
   )
