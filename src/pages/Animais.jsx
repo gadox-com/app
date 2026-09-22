@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { Plus, Search, Edit2, Home, Syringe, DollarSign, Trash2, ChevronUp, ChevronDown, X, RefreshCw, Camera } from 'lucide-react'
 import AnimalModal from '../components/AnimalModal'
@@ -25,12 +25,14 @@ export default function Animais() {
     const timer = setTimeout(() => setSearch(searchInput), 300)
     return () => clearTimeout(timer)
   }, [searchInput])
-  const [filters, setFilters] = useState({ status: 'ATIVO', local: 'Todos', categoria: 'Todas', sexo: 'Todos', faixaPeso: 'Todos', descarte: false })
+  const FILTROS_PADRAO = { status: 'ATIVO', local: 'Todos', categoria: 'Todas', sexo: 'Todos', faixaPeso: [], descarte: false }
+  const [filters, setFilters] = useState(FILTROS_PADRAO)
   const [sortField, setSortField] = useState('brinco')
   const [sortDir, setSortDir] = useState('asc')
 
   const [modalAnimal, setModalAnimal] = useState({ open: false, data: null })
-  const [maisFilters, setMaisFilters] = useState(false)
+  const [pesoOpen, setPesoOpen] = useState(false)
+  const pesoRef = useRef(null)
   const [modalConf, setModalConf] = useState({ open: false, data: null })
   const [modalRep, setModalRep] = useState({ open: false, data: null })
   const [modalVenda, setModalVenda] = useState({ open: false, data: null })
@@ -42,6 +44,14 @@ export default function Animais() {
     supabase.from('locais').select('nome').order('nome').then(({ data }) => {
       setLocais(['Todos', ...(data || []).map(l => l.nome), 'VENDIDO'])
     })
+  }, [])
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (pesoRef.current && !pesoRef.current.contains(e.target)) setPesoOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
   // Listen for cross-animal navigation from AnimalPerfil
@@ -129,18 +139,19 @@ export default function Animais() {
     if (filters.categoria !== 'Todas') list = list.filter(a => a.categoria === filters.categoria)
     if (filters.sexo !== 'Todos') list = list.filter(a => a.sexo === filters.sexo)
     if (filters.descarte) list = list.filter(a => a.descarte)
-    if (filters.faixaPeso !== 'Todos') {
-      list = list.filter(a => {
-        const p = parseFloat(a.peso)
+    if (filters.faixaPeso.length > 0) {
+      const pesoMatch = (peso, faixa) => {
+        const p = parseFloat(peso)
         if (!p) return false
-        if (filters.faixaPeso === '50-100') return p >= 50 && p <= 100
-        if (filters.faixaPeso === '100-150') return p > 100 && p <= 150
-        if (filters.faixaPeso === '150-200') return p > 150 && p <= 200
-        if (filters.faixaPeso === '200-250') return p > 200 && p <= 250
-        if (filters.faixaPeso === '250-300') return p > 250 && p <= 300
-        if (filters.faixaPeso === '300+') return p > 300
-        return true
-      })
+        if (faixa === '50-100')  return p >= 50  && p <= 100
+        if (faixa === '100-150') return p > 100  && p <= 150
+        if (faixa === '150-200') return p > 150  && p <= 200
+        if (faixa === '200-250') return p > 200  && p <= 250
+        if (faixa === '250-300') return p > 250  && p <= 300
+        if (faixa === '300+')    return p > 300
+        return false
+      }
+      list = list.filter(a => filters.faixaPeso.some(f => pesoMatch(a.peso, f)))
     }
 
     list.sort((a, b) => {
@@ -172,6 +183,9 @@ export default function Animais() {
 
   const formatDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-BR') : '—'
 
+  const temFiltroAtivo = filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' ||
+    filters.sexo !== 'Todos' || filters.faixaPeso.length > 0 || filters.descarte || !!searchInput.trim()
+
   return (
     <div className="p-6 lg:p-8">
       {/* Header */}
@@ -182,9 +196,9 @@ export default function Animais() {
             <span className="text-sm font-bold text-orange-500">{filtered.length}</span>
             <span className="text-sm text-gray-500">
               {filtered.length === 1 ? 'animal' : 'animais'}
-              {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || filters.sexo !== 'Todos' || filters.faixaPeso !== 'Todos' || filters.descarte || searchInput.trim()) ? ' encontrados' : ' ativos'}
+              {temFiltroAtivo ? ' encontrados' : ' ativos'}
             </span>
-            {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || filters.sexo !== 'Todos' || filters.faixaPeso !== 'Todos' || filters.descarte || searchInput.trim()) && (
+            {temFiltroAtivo && (
               <span className="text-xs text-gray-500">
                 de {animais.length} total
               </span>
@@ -199,7 +213,7 @@ export default function Animais() {
               <span className="text-xs bg-orange-50 text-orange-500 px-2 py-0.5 rounded-full">{filters.categoria}</span>
             )}
             {searchInput.trim() && (
-              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">"{searchInput.trim()}"</span>
+              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">&ldquo;{searchInput.trim()}&rdquo;</span>
             )}
           </div>
         </div>
@@ -215,113 +229,169 @@ export default function Animais() {
         </div>
       </div>
 
-      {/* Search and Filters — sempre visíveis */}
-      <div className="card px-4 py-3 mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
+      {/* Busca — campo grande e destacado */}
+      <div className="relative mb-3">
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          className="w-full pl-11 pr-4 py-3.5 text-base bg-white border-2 border-gray-200 rounded-2xl shadow-sm focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-50 transition-all placeholder:text-gray-400"
+          placeholder="Buscar por brinco ou raça..."
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
+          autoComplete="off"
+        />
+        {searchInput && (
+          <button onClick={() => { setSearch(''); setSearchInput('') }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={16} />
+          </button>
+        )}
+      </div>
 
-          {/* Busca — menor */}
-          <div className="relative w-56">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
-            <input
-              className="input-field pl-8 py-1.5 text-sm"
-              placeholder="Brinco ou raça..."
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-            />
-          </div>
+      {/* Filtros — sempre visíveis */}
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm mb-4">
+        <div className="px-4 py-3 flex items-center gap-2 flex-wrap">
 
-          <div className="w-px h-6 bg-gray-200" />
-
-          {/* Status */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Status</span>
+          {/* STATUS — pills */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">Status</span>
             <div className="flex gap-1">
-              {['Todos', 'ATIVO', 'VENDIDO'].map(s => (
-                <button key={s} onClick={() => setFilters(f => ({ ...f, status: s }))}
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                    filters.status === s
-                      ? s === 'ATIVO' ? 'bg-green-600 text-white'
-                      : s === 'VENDIDO' ? 'bg-red-500 text-white'
-                      : 'bg-gray-800 text-white'
-                      : s === 'ATIVO' ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                      : s === 'VENDIDO' ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}>
-                  {s === 'Todos' ? 'Todos' : s === 'ATIVO' ? '● Ativos' : '○ Vendidos'}
-                </button>
+              {[{v:'Todos',l:'Todos'},{v:'ATIVO',l:'● Ativo'},{v:'VENDIDO',l:'○ Vendido'}].map(s => (
+                <button key={s.v} onClick={() => setFilters(f => ({ ...f, status: s.v }))}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                    filters.status === s.v
+                      ? s.v === 'ATIVO' ? 'bg-green-500 text-white shadow-sm'
+                        : s.v === 'VENDIDO' ? 'bg-red-500 text-white shadow-sm'
+                        : 'bg-gray-700 text-white shadow-sm'
+                      : s.v === 'ATIVO' ? 'bg-gray-100 text-green-700 hover:bg-green-50'
+                        : s.v === 'VENDIDO' ? 'bg-gray-100 text-red-600 hover:bg-red-50'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}>{s.l}</button>
               ))}
             </div>
           </div>
 
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-12 bg-gray-200" />
 
-          {/* Local */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Local</span>
-            <select className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-orange-400"
-              value={filters.local} onChange={e => setFilters(f => ({ ...f, local: e.target.value }))}>
-              {locais.map(l => <option key={l}>{l}</option>)}
+          {/* LOCAL — dropdown */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">Local</span>
+            <select
+              value={filters.local}
+              onChange={e => setFilters(f => ({ ...f, local: e.target.value }))}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all focus:outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer ${
+                filters.local !== 'Todos' ? 'bg-orange-500 text-white border-orange-500' : 'bg-gray-100 text-gray-700 border-gray-100 hover:bg-gray-200'
+              }`}>
+              {locais.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
 
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-12 bg-gray-200" />
 
-          {/* Categoria */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Categoria</span>
-            <select className="text-xs border border-gray-300 rounded-lg px-2 py-1.5 bg-white text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-orange-400"
-              value={filters.categoria} onChange={e => setFilters(f => ({ ...f, categoria: e.target.value }))}>
-              {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+          {/* CATEGORIA — dropdown */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">Categoria</span>
+            <select
+              value={filters.categoria}
+              onChange={e => setFilters(f => ({ ...f, categoria: e.target.value }))}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all focus:outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer ${
+                filters.categoria !== 'Todas' ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-100 text-gray-700 border-gray-100 hover:bg-gray-200'
+              }`}>
+              {CATEGORIAS.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 
-          {/* Limpar — só aparece se tiver filtro ativo */}
-          {(filters.status !== 'ATIVO' || filters.local !== 'Todos' || filters.categoria !== 'Todas' || filters.sexo !== 'Todos' || filters.faixaPeso !== 'Todos' || filters.descarte || searchInput.trim()) && (
-            <>
-              <div className="w-px h-6 bg-gray-200" />
-              <button onClick={() => { setFilters({ status: 'ATIVO', local: 'Todos', categoria: 'Todas', sexo: 'Todos', faixaPeso: 'Todos', descarte: false }); setSearch(''); setSearchInput('') }}
-                className="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1 transition-colors font-medium">
-                <X size={12} /> Limpar
+          <div className="w-px h-12 bg-gray-200" />
+
+          {/* SEXO — dropdown */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">Sexo</span>
+            <select
+              value={filters.sexo}
+              onChange={e => setFilters(f => ({ ...f, sexo: e.target.value }))}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all focus:outline-none focus:ring-2 focus:ring-orange-200 cursor-pointer ${
+                filters.sexo !== 'Todos' ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-100 text-gray-700 border-gray-100 hover:bg-gray-200'
+              }`}>
+              <option value="Todos">Todos</option>
+              <option value="MACHO">♂ Macho</option>
+              <option value="FÊMEA">♀ Fêmea</option>
+            </select>
+          </div>
+
+          <div className="w-px h-12 bg-gray-200" />
+
+          {/* PESO — dropdown multi-select */}
+          <div className="flex flex-col gap-1" ref={pesoRef}>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">Peso (kg)</span>
+            <div className="relative">
+              <button
+                onClick={() => setPesoOpen(v => !v)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all whitespace-nowrap ${
+                  filters.faixaPeso.length > 0 ? 'bg-blue-500 text-white border-blue-500 shadow-sm' : 'bg-gray-100 text-gray-700 border-gray-100 hover:bg-blue-50 hover:text-blue-600'
+                }`}>
+                {filters.faixaPeso.length === 0 ? 'Todos' : filters.faixaPeso.length === 1 ? filters.faixaPeso[0] + ' kg' : `${filters.faixaPeso.length} faixas`}
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" className={`transition-transform ${pesoOpen ? 'rotate-180' : ''}`}><path d="M1 3l4 4 4-4"/></svg>
               </button>
+              {pesoOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 min-w-[140px] py-1">
+                  {[{v:'50-100',l:'50 – 100 kg'},{v:'100-150',l:'100 – 150 kg'},{v:'150-200',l:'150 – 200 kg'},{v:'200-250',l:'200 – 250 kg'},{v:'250-300',l:'250 – 300 kg'},{v:'300+',l:'Acima de 300 kg'}].map(p => (
+                    <label key={p.v} className="flex items-center gap-2.5 px-3 py-2 hover:bg-blue-50 cursor-pointer transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={filters.faixaPeso.includes(p.v)}
+                        onChange={() => setFilters(f => ({
+                          ...f,
+                          faixaPeso: f.faixaPeso.includes(p.v)
+                            ? f.faixaPeso.filter(x => x !== p.v)
+                            : [...f.faixaPeso, p.v]
+                        }))}
+                        className="accent-blue-500 w-3.5 h-3.5"
+                      />
+                      <span className="text-xs font-medium text-gray-700">{p.l}</span>
+                    </label>
+                  ))}
+                  {filters.faixaPeso.length > 0 && (
+                    <>
+                      <div className="border-t border-gray-100 my-1" />
+                      <button
+                        onClick={() => setFilters(f => ({ ...f, faixaPeso: [] }))}
+                        className="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 font-medium transition-colors">
+                        Limpar peso
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="w-px h-12 bg-gray-200" />
+
+          {/* DESCARTE — toggle */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1">Descarte</span>
+            <button onClick={() => setFilters(f => ({ ...f, descarte: !f.descarte }))}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border whitespace-nowrap ${
+                filters.descarte ? 'bg-red-500 text-white border-red-500 shadow-sm' : 'bg-gray-100 text-gray-600 border-gray-100 hover:bg-red-50 hover:text-red-600'
+              }`}>
+              <svg width="8" height="10" viewBox="0 0 10 12" fill="currentColor"><path d="M0 0h10v8L5 6 0 8V0z"/><rect x="0" y="0" width="1.5" height="12" fill="currentColor"/></svg>
+              {filters.descarte ? 'Só descarte' : 'Descarte'}
+            </button>
+          </div>
+
+          {temFiltroAtivo && (
+            <>
+              <div className="w-px h-12 bg-gray-200" />
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-bold text-transparent uppercase tracking-wider px-1">-</span>
+                <button onClick={() => { setFilters(FILTROS_PADRAO); setSearch(''); setSearchInput('') }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                  <X size={12} /> Limpar
+                </button>
+              </div>
             </>
           )}
         </div>
       </div>
-
-      {/* Filtros expandidos — sexo, peso, descarte */}
-      {maisFilters && (
-        <div className="card px-4 py-3 mb-4 flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Sexo</span>
-            <div className="flex gap-1">
-              {[{v:'Todos',l:'Todos'},{v:'MACHO',l:'♂ Macho'},{v:'FÊMEA',l:'♀ Fêmea'}].map(s => (
-                <button key={s.v} onClick={() => setFilters(f => ({ ...f, sexo: s.v }))}
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${filters.sexo === s.v ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-                  {s.l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="w-px h-6 bg-gray-200" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Peso</span>
-            <div className="flex gap-1 flex-wrap">
-              {[{v:'Todos',l:'Todos'},{v:'50-100',l:'50–100'},{v:'100-150',l:'100–150'},{v:'150-200',l:'150–200'},{v:'200-250',l:'200–250'},{v:'250-300',l:'250–300'},{v:'300+',l:'+300kg'}].map(p => (
-                <button key={p.v} onClick={() => setFilters(f => ({ ...f, faixaPeso: p.v }))}
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${filters.faixaPeso === p.v ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-                  {p.l}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="w-px h-6 bg-gray-200" />
-          <button onClick={() => setFilters(f => ({ ...f, descarte: !f.descarte }))}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${filters.descarte ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'}`}>
-            <svg width="8" height="10" viewBox="0 0 10 12" fill="currentColor"><path d="M0 0h10v8L5 6 0 8V0z"/><rect x="0" y="0" width="1.5" height="12" fill="currentColor"/></svg>
-            Apenas descarte
-          </button>
-        </div>
-      )}
 
       {/* Table */}
       {loading ? (
@@ -394,7 +464,13 @@ export default function Animais() {
                         {animal.categoria}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{animal.local}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {animal.confinado ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-200 whitespace-nowrap">
+                          <Home size={10} /> {animal.local}
+                        </span>
+                      ) : animal.local}
+                    </td>
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {animal.peso ? `${animal.peso} kg` : '—'}
                     </td>

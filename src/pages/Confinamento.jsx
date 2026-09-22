@@ -211,11 +211,11 @@ export default function Confinamento({ onNavigate }) {
             : '—'
           return [
             a.brinco || '—',
-            \`\${a.raca || '—'}\`,
+            `${a.raca || '—'}`,
             a.categoria || '—',
-            a.data_confinamento ? (() => { const [y,m,d] = a.data_confinamento.split('-'); return \`\${d}/\${m}/\${y}\` })() : '—',
-            a.peso_inicio_dieta ? \`\${a.peso_inicio_dieta} kg\` : '—',
-            a.peso ? \`\${a.peso} kg\` : '—',
+            a.data_confinamento ? (() => { const [y,m,d] = a.data_confinamento.split('-'); return `${d}/\${m}/\${y}` })() : '—',
+            a.peso_inicio_dieta ? `${a.peso_inicio_dieta} kg` : '—',
+            a.peso ? `${a.peso} kg` : '—',
             String(dias),
             racoes[a.racao_id] || '—',
             '', // novo peso (preenchido à mão)
@@ -269,11 +269,11 @@ export default function Confinamento({ onNavigate }) {
         doc.setPage(i)
         doc.setFontSize(7)
         doc.setTextColor(160)
-        doc.text(\`Página \${i} de \${totalPages}\`, pageW - 10, pageH - 5, { align: 'right' })
+        doc.text(`Página \${i} de \${totalPages}`, pageW - 10, pageH - 5, { align: 'right' })
         doc.text('GadoX — folha de pesagem', 10, pageH - 5)
       }
 
-      doc.save(\`pesagem-confinamento-\${dataISO}.pdf\`)
+      doc.save(`pesagem-confinamento-\${dataISO}.pdf`)
     } catch (err) {
       alert('Erro ao gerar PDF: ' + err.message)
     } finally {
@@ -353,7 +353,7 @@ export default function Confinamento({ onNavigate }) {
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <Package size={36} className="text-gray-300 mx-auto mb-3" />
           <p className="font-semibold text-gray-500">Nenhum animal confinado</p>
-          <p className="text-sm text-gray-400 mt-1">Acesse um animal e clique em "Confinamento" para confinar</p>
+          <p className="text-sm text-gray-400 mt-1">Acesse um animal e clique em &ldquo;Confinamento&rdquo; para confinar</p>
           <button onClick={() => onNavigate?.('animais')} className="mt-4 text-sm font-semibold text-orange-500 hover:text-orange-700 transition-colors">Ir para Animais →</button>
         </div>
       ) : (

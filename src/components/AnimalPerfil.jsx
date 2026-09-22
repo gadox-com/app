@@ -1,18 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { X, Home, Syringe, DollarSign, Camera, Upload, Loader, Edit2, MessageSquare, Scale, AlertTriangle, Flag, Bell, Calendar, Trash2 } from 'lucide-react'
+import { X, Home, Syringe, DollarSign, Camera, Upload, Loader, Edit2, MessageSquare, Scale, AlertTriangle, Flag, CheckCircle2, ChevronRight, Bell, Trash2 } from 'lucide-react'
 import { registrarLog } from '../lib/log.js'
 import { useRole } from '../lib/role.jsx'
 import ConfinamentoModal from './ConfinamentoModal'
 import ReproducaoModal from './ReproducaoModal'
+import { formatDate as fd, formatMoney as fm, calcularCategoria, mesesDeVida } from '../lib/format'
 
-const fd = (d) => {
-  if (!d) return '—'
-  const s = String(d).split('T')[0]
-  const [y, m, day] = s.split('-')
-  return `${day}/${m}/${y}`
-}
-const fm = (v) => v ? `R$ ${parseFloat(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'
 const fmtRel = (d) => {
   if (!d) return ''
   const diff = Math.floor((new Date() - new Date(d)) / 1000)
@@ -21,16 +15,6 @@ const fmtRel = (d) => {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`
   if (diff < 604800) return `${Math.floor(diff / 86400)}d atrás`
   return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
-}
-
-function calcularCategoria(nascimento, sexo) {
-  if (!nascimento) return null
-  const meses = Math.floor((new Date() - new Date(nascimento)) / (1000 * 60 * 60 * 24 * 30.5))
-  const m = sexo === 'MACHO'
-  if (meses <= 12) return m ? 'BEZERRO' : 'BEZERRA'
-  if (meses <= 24) return m ? 'NOVILHO' : 'NOVILHA'
-  if (meses <= 36) return m ? 'BOI' : 'VACA'
-  return m ? 'TOURO' : 'VACA'
 }
 
 async function compressImage(file) {
@@ -59,14 +43,6 @@ const SaveIcon = () => (
   </svg>
 )
 
-const FenceIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="4" y1="3" x2="4" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="20" y1="3" x2="20" y2="21"/>
-    <line x1="2" y1="9" x2="22" y2="9"/><line x1="2" y1="15" x2="22" y2="15"/>
-    <polyline points="4,3 6,6 8,3"/><polyline points="12,3 14,6 16,3"/>
-  </svg>
-)
-
 function InfoRow({ label, value, mono = false }) {
   if (!value || value === '—') return (
     <div className="flex items-center justify-between py-2.5 px-3.5 border-b border-gray-100 last:border-0">
@@ -75,11 +51,50 @@ function InfoRow({ label, value, mono = false }) {
     </div>
   )
   return (
-    <div className="flex items-center justify-between py-2.5 px-3.5 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-500">{label}</span>
-      <span className={`text-sm font-semibold text-gray-900 ${mono ? 'font-mono' : ''}`}>{value}</span>
+    <div className="flex items-center justify-between gap-3 py-2.5 px-3.5 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-500 flex-shrink-0">{label}</span>
+      <span className={`text-sm font-semibold text-gray-900 text-right break-words min-w-0 ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>
   )
+}
+
+// Linha do painel de manejo: ícone neutro, título e o estado atual alinhado
+// à direita, para dar pra varrer a coluna toda de cima a baixo.
+function LinhaManejo({ icone, titulo, valor, ativo = false, onClick }) {
+  return (
+    <button onClick={onClick}
+      className="w-full flex items-center gap-3 px-3.5 py-3 text-left hover:bg-gray-50 transition-colors">
+      <span className={`flex-shrink-0 ${ativo ? 'text-gray-700' : 'text-gray-400'}`}>{icone}</span>
+      <span className="flex-1 min-w-0 text-sm font-semibold text-gray-800">{titulo}</span>
+      <span className="flex items-center gap-1.5 flex-shrink-0">
+        {ativo && <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />}
+        <span className={`text-xs ${ativo ? 'font-semibold text-gray-800' : 'text-gray-500'}`}>{valor}</span>
+      </span>
+      <ChevronRight size={15} className="text-gray-300 flex-shrink-0" />
+    </button>
+  )
+}
+
+// Descarte alterna na hora, então usa interruptor em vez de seta: a forma
+// do controle avisa que não abre nada.
+function LinhaToggle({ icone, titulo, descricao, ligado, onClick, disabled }) {
+  return (
+    <button onClick={onClick} disabled={disabled} role="switch" aria-checked={ligado}
+      className="w-full flex items-center gap-3 px-3.5 py-3 text-left hover:bg-gray-50 transition-colors disabled:opacity-60">
+      <span className={`flex-shrink-0 ${ligado ? 'text-red-500' : 'text-gray-400'}`}>{icone}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm font-semibold text-gray-800 leading-tight">{titulo}</span>
+        <span className="block text-xs text-gray-500 mt-0.5 leading-snug">{descricao}</span>
+      </span>
+      <span className={`relative w-9 h-5 rounded-full flex-shrink-0 transition-colors ${ligado ? 'bg-red-500' : 'bg-gray-200'}`}>
+        <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${ligado ? 'translate-x-4' : 'translate-x-0'}`} />
+      </span>
+    </button>
+  )
+}
+
+function TituloGrupo({ children }) {
+  return <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">{children}</div>
 }
 
 function BaixaModal({ animal, onConfirm, onClose }) {
@@ -159,7 +174,6 @@ function VendaModal({ animal, onConfirm, onClose }) {
   )
 }
 
-
 function DescarteModal({ animal, onConfirm, onClose }) {
   const [motivo, setMotivo] = useState('Doença')
   const [obs, setObs] = useState('')
@@ -236,24 +250,28 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
   const [savingObs, setSavingObs] = useState(false)
   const [activeModal, setActiveModal] = useState(null)
   const [filhos, setFilhos] = useState([])
-  const [togglingConfinado, setTogglingConfinado] = useState(false)
   const [togglingDescarte, setTogglingDescarte] = useState(false)
   const [confHistorico, setConfHistorico] = useState([])
   const [repHistorico, setRepHistorico] = useState([])
   const [togglingStatus, setTogglingStatus] = useState(false)
+  const [fotoAmpliada, setFotoAmpliada] = useState(false)
+  const [racoes, setRacoes] = useState([])
+  const [internalId, setInternalId] = useState(animalId)
+  const [navError, setNavError] = useState('')
   const fileInputRef = useRef(null)
   // Vacinas
   const [vacinas, setVacinas] = useState([])
-  const [rightTab, setRightTab] = useState('pesagens') // 'pesagens' | 'vacinas'
   const [vacinaNome, setVacinaNome] = useState('')
   const [vacinaData, setVacinaData] = useState(new Date().toISOString().split('T')[0])
   const [vacinaObs, setVacinaObs] = useState('')
   const [vacinaRepetir, setVacinaRepetir] = useState('')
   const [savingVacina, setSavingVacina] = useState(false)
-  const [fotoAmpliada, setFotoAmpliada] = useState(false)
-  const [racoes, setRacoes] = useState([])
 
-  useEffect(() => { if (isOpen && animalId) fetchAll() }, [isOpen, animalId])
+  // Sincroniza com o id vindo de fora sempre que o modal abre (ou troca de animal externamente)
+  useEffect(() => { if (isOpen) setInternalId(animalId) }, [isOpen, animalId])
+  useEffect(() => { if (!isOpen) setFotoAmpliada(false) }, [isOpen])
+
+  useEffect(() => { if (isOpen && internalId) fetchAll() }, [isOpen, internalId])
   useEffect(() => {
     if (!isOpen) return
     const h = (e) => { if (e.key === 'Escape') { if (activeModal) setActiveModal(null); else onClose() } }
@@ -263,14 +281,14 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
   }, [isOpen, activeModal])
 
   async function fetchAll() {
-    setLoading(true); setFotoUrl(null)
+    setLoading(true); setFotoUrl(null); setNavError(''); setFotoAmpliada(false)
     const [{ data: a }, { data: p }, { data: o }, { data: ch }, { data: rh }, { data: v }] = await Promise.all([
-      supabase.from('animais').select('*').eq('id', animalId).single(),
-      supabase.from('peso_historico').select('*').eq('animal_id', animalId).order('data_peso', { ascending: false }),
-      supabase.from('observacoes_animal').select('*').eq('animal_id', animalId).order('created_at', { ascending: false }),
-      supabase.from('confinamento_historico').select('id').eq('animal_id', animalId).limit(1),
-      supabase.from('reproducao').select('id').eq('animal_id', animalId).limit(1),
-      supabase.from('vacinas').select('*').eq('animal_id', animalId).order('data_aplicacao', { ascending: false }),
+      supabase.from('animais').select('*').eq('id', internalId).single(),
+      supabase.from('peso_historico').select('*').eq('animal_id', internalId).order('data_peso', { ascending: false }),
+      supabase.from('observacoes_animal').select('*').eq('animal_id', internalId).order('created_at', { ascending: false }),
+      supabase.from('confinamento_historico').select('id').eq('animal_id', internalId).limit(1),
+      supabase.from('reproducao').select('id').eq('animal_id', internalId).limit(1),
+      supabase.from('vacinas').select('*').eq('animal_id', internalId).order('data_aplicacao', { ascending: false }),
     ])
     setAnimal(a); setPesos(p || []); setObservacoes(o || []); setConfHistorico(ch || []); setRepHistorico(rh || []); setVacinas(v || [])
     if (a?.confinado) {
@@ -297,6 +315,32 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
     setFotoUrl(null)
   }
 
+  // Navega para o perfil de outro animal (matriz, filho) sem fechar o modal
+  async function abrirAnimalPorBrinco(brinco) {
+    if (!brinco) return
+    setNavError('')
+    setLoading(true)
+    const norm = String(parseInt(brinco, 10))
+    let { data } = await supabase.from('animais').select('id, brinco').eq('brinco', String(brinco)).limit(1)
+    let found = (data || [])[0]
+    if (!found) {
+      const { data: all } = await supabase.from('animais').select('id, brinco')
+      found = (all || []).find(a => String(parseInt(a.brinco, 10)) === norm)
+    }
+    if (found) {
+      setInternalId(found.id)
+    } else {
+      setNavError(`Animal #${brinco} não encontrado.`)
+      setLoading(false)
+    }
+  }
+
+  function abrirAnimalPorId(id) {
+    setNavError('')
+    setLoading(true)
+    setInternalId(id)
+  }
+
   async function handleFotoUpload(e) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -308,7 +352,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
       await supabase.storage.from('animais-fotos').remove(['jpg','jpeg','png','webp'].map(ext => `${animal.brinco}.${ext}`))
       const { error } = await supabase.storage.from('animais-fotos').upload(`${animal.brinco}.jpg`, compressed, { upsert: true, contentType: 'image/jpeg' })
       if (error) throw error
-      await supabase.from('animais').update({ tem_foto: true }).eq('id', animalId)
+      await supabase.from('animais').update({ tem_foto: true }).eq('id', internalId)
       await loadFoto(animal.brinco)
     } catch (err) { setFotoError(err.message) }
     finally { setUploadingFoto(false); if (fileInputRef.current) fileInputRef.current.value = '' }
@@ -317,16 +361,16 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
   async function handleRemoverFoto() {
     if (!confirm('Remover foto?')) return
     await supabase.storage.from('animais-fotos').remove(['jpg','jpeg','png','webp'].map(ext => `${animal.brinco}.${ext}`))
-    await supabase.from('animais').update({ tem_foto: false }).eq('id', animalId)
+    await supabase.from('animais').update({ tem_foto: false }).eq('id', internalId)
     setFotoUrl(null)
   }
 
   async function toggleStatus() {
     setTogglingStatus(true)
     if (animal.status !== 'ATIVO') {
-      await supabase.from('animais').update({ status: 'ATIVO', saida: null, motivo_saida: null }).eq('id', animalId)
+      await supabase.from('animais').update({ status: 'ATIVO', saida: null, motivo_saida: null }).eq('id', internalId)
       setAnimal(a => ({ ...a, status: 'ATIVO' }))
-      await registrarLog('Reativou animal', null, animalId, animal?.brinco)
+      await registrarLog('Reativou animal', null, internalId, animal?.brinco)
       onSaved?.()
     } else {
       setActiveModal('baixa')
@@ -336,11 +380,10 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
 
   async function toggleDescarte() {
     if (animal.descarte) {
-      // Remover descarte diretamente
       setTogglingDescarte(true)
-      await supabase.from('animais').update({ descarte: false, motivo_saida: null }).eq('id', animalId)
+      await supabase.from('animais').update({ descarte: false, motivo_saida: null }).eq('id', internalId)
       setAnimal(a => ({ ...a, descarte: false }))
-      await registrarLog('Removeu descarte', null, animalId, animal?.brinco)
+      await registrarLog('Removeu descarte', null, internalId, animal?.brinco)
       setTogglingDescarte(false); onSaved?.()
     } else {
       setActiveModal('descarte')
@@ -354,33 +397,29 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
         motivo_saida: 'Morte', saida: new Date().toISOString().split('T')[0],
         descarte: false,
         observacao: obs || animal.observacao
-      }).eq('id', animalId)
-      await registrarLog('Óbito registrado', obs || null, animalId, animal?.brinco)
+      }).eq('id', internalId)
+      await registrarLog('Óbito registrado', obs || null, internalId, animal?.brinco)
     } else {
       await supabase.from('animais').update({
         descarte: true,
         motivo_saida: `${motivo}${obs ? ': ' + obs : ''}`
-      }).eq('id', animalId)
-      await registrarLog('Marcou para descarte', `${motivo}${obs ? ': ' + obs : ''}`, animalId, animal?.brinco)
+      }).eq('id', internalId)
+      await registrarLog('Marcou para descarte', `${motivo}${obs ? ': ' + obs : ''}`, internalId, animal?.brinco)
     }
     setActiveModal(null); fetchAll(); onSaved?.()
-  }
-
-  async function toggleConfinado() {
-    setTogglingConfinado(true)
-    const novo = !animal.confinado
-    await supabase.from('animais').update({ confinado: novo }).eq('id', animalId)
-    setAnimal(a => ({ ...a, confinado: novo }))
-    setTogglingConfinado(false); onSaved?.()
   }
 
   async function salvarPeso() {
     if (!pesoVal) return setPesoError('Informe o peso')
     setSavingPeso(true); setPesoError('')
     try {
-      await supabase.from('peso_historico').insert([{ animal_id: animalId, peso: parseFloat(pesoVal), data_peso: pesoData, fazenda_id: animal?.fazenda_id }])
-      await supabase.from('animais').update({ peso: parseFloat(pesoVal), data_peso: pesoData }).eq('id', animalId)
-      await registrarLog('Registrou peso', `${pesoVal} kg`, animalId, animal?.brinco)
+      await supabase.from('peso_historico').insert([{ animal_id: internalId, peso: parseFloat(pesoVal), data_peso: pesoData, fazenda_id: animal?.fazenda_id }])
+      // Só atualiza o "peso atual" do animal se esta pesagem for a mais recente
+      // (evita que registrar um peso antigo sobrescreva o peso de hoje).
+      if (!animal?.data_peso || pesoData >= animal.data_peso) {
+        await supabase.from('animais').update({ peso: parseFloat(pesoVal), data_peso: pesoData }).eq('id', internalId)
+      }
+      await registrarLog('Registrou peso', `${pesoVal} kg`, internalId, animal?.brinco)
       setPesoVal(''); setPesoData(new Date().toISOString().split('T')[0])
       fetchAll(); onSaved?.()
     } catch (err) { setPesoError(err.message) }
@@ -391,8 +430,8 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
     if (!confirm('Remover este peso?')) return
     await supabase.from('peso_historico').delete().eq('id', id)
     const restantes = pesos.filter(p => p.id !== id)
-    if (restantes.length > 0) await supabase.from('animais').update({ peso: restantes[0].peso, data_peso: restantes[0].data_peso }).eq('id', animalId)
-    else await supabase.from('animais').update({ peso: null, data_peso: null }).eq('id', animalId)
+    if (restantes.length > 0) await supabase.from('animais').update({ peso: restantes[0].peso, data_peso: restantes[0].data_peso }).eq('id', internalId)
+    else await supabase.from('animais').update({ peso: null, data_peso: null }).eq('id', internalId)
     fetchAll(); onSaved?.()
   }
 
@@ -406,7 +445,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
       proxima_data = d.toISOString().split('T')[0]
     }
     const { error: vacinaErr } = await supabase.from('vacinas').insert([{
-      animal_id: animalId,
+      animal_id: internalId,
       fazenda_id: animal?.fazenda_id,
       nome: vacinaNome.trim(),
       data_aplicacao: vacinaData,
@@ -415,7 +454,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
       proxima_data,
     }])
     if (vacinaErr) { setSavingVacina(false); return }
-    await registrarLog('Registrou vacina', vacinaNome.trim(), animalId, animal?.brinco)
+    await registrarLog('Registrou vacina', vacinaNome.trim(), internalId, animal?.brinco)
     setVacinaNome(''); setVacinaObs(''); setVacinaRepetir('')
     setVacinaData(new Date().toISOString().split('T')[0])
     fetchAll(); setSavingVacina(false)
@@ -430,30 +469,31 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
   async function salvarObservacao() {
     if (!obsTexto.trim()) return
     setSavingObs(true)
-    await supabase.from('observacoes_animal').insert([{ animal_id: animalId, texto: obsTexto.trim() }])
-    await registrarLog('Adicionou observação', obsTexto.trim(), animalId, animal?.brinco)
+    await supabase.from('observacoes_animal').insert([{ animal_id: internalId, texto: obsTexto.trim() }])
+    await registrarLog('Adicionou observação', obsTexto.trim(), internalId, animal?.brinco)
     setObsTexto(''); fetchAll(); setSavingObs(false)
   }
 
   async function deletarObservacao(id) {
+    if (!confirm('Remover esta observação?')) return
     await supabase.from('observacoes_animal').delete().eq('id', id); fetchAll()
   }
 
   async function handleBaixa({ motivo, data, obs }) {
-    await supabase.from('animais').update({ status: 'VENDIDO', local: 'VENDIDO', motivo_saida: motivo, saida: data, observacao: obs || animal.observacao }).eq('id', animalId)
-    await registrarLog('Desativou animal', `Motivo: ${motivo}`, animalId, animal?.brinco)
+    await supabase.from('animais').update({ status: 'VENDIDO', local: 'VENDIDO', motivo_saida: motivo, saida: data, observacao: obs || animal.observacao }).eq('id', internalId)
+    await registrarLog('Desativou animal', `Motivo: ${motivo}`, internalId, animal?.brinco)
     setActiveModal(null); fetchAll(); onSaved?.()
   }
 
   async function handleVenda({ preco, peso, data, obs }) {
-    await supabase.from('animais').update({ status: 'VENDIDO', local: 'VENDIDO', motivo_saida: 'Venda', preco_venda: preco ? parseFloat(preco) : null, peso: peso ? parseFloat(peso) : animal.peso, data_peso: data, saida: data, observacao: obs || animal.observacao }).eq('id', animalId)
-    await registrarLog('Registrou venda', preco ? `R$ ${parseFloat(preco).toLocaleString('pt-BR')}` : null, animalId, animal?.brinco)
+    await supabase.from('animais').update({ status: 'VENDIDO', local: 'VENDIDO', motivo_saida: 'Venda', preco_venda: preco ? parseFloat(preco) : null, peso: peso ? parseFloat(peso) : animal.peso, data_peso: peso ? data : animal.data_peso, saida: data, observacao: obs || animal.observacao }).eq('id', internalId)
+    await registrarLog('Registrou venda', preco ? `R$ ${parseFloat(preco).toLocaleString('pt-BR')}` : null, internalId, animal?.brinco)
     setActiveModal(null); fetchAll(); onSaved?.()
   }
 
   const idade = () => {
-    if (!animal?.nascimento) return null
-    const m = Math.floor((new Date() - new Date(animal.nascimento)) / (1000 * 60 * 60 * 24 * 30.5))
+    const m = mesesDeVida(animal?.nascimento)
+    if (m === null) return null
     return m < 24 ? `${m} meses` : `${Math.floor(m / 12)} anos`
   }
 
@@ -461,9 +501,9 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ height: '88vh', maxHeight: '780px' }}>
+        <div className="relative w-full h-full sm:h-[88vh] sm:max-h-[780px] sm:max-w-5xl bg-white sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col">
 
           {loading || !animal ? (
             <div className="flex-1 flex items-center justify-center">
@@ -472,33 +512,23 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
           ) : (
             <>
               {/* HEADER */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 sm:px-5 py-3 border-b border-gray-100 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
                     <line x1="7" y1="7" x2="7.01" y2="7"/>
                   </svg>
                   <span className="font-mono text-xl font-black text-gray-900 tracking-tight">{animal.brinco}</span>
-                  <button onClick={isViewer ? undefined : toggleStatus} disabled={togglingStatus || isViewer}
-                    className={`text-xs font-bold px-2.5 py-1 rounded-full border transition-all ${animal.status === 'ATIVO' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'}`}>
-                    {togglingStatus ? '...' : animal.status === 'ATIVO' ? '● Ativo' : '○ Inativo'}
-                  </button>
+                  <span className="text-xs sm:text-sm font-medium text-gray-500 truncate">
+                    {[animal.raca, calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria, animal.local].filter(Boolean).join(' · ')}
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
                   {!isViewer && (
                     <button onClick={() => onRequestEdit && onRequestEdit(animal)}
-                      className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
-                      <Edit2 size={12} /> Editar
+                      className="flex items-center gap-1.5 text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                      <Edit2 size={12} /> <span className="hidden sm:inline">Editar</span>
                     </button>
-                  )}
-                  {!isViewer && animal.status === 'ATIVO' && (
-                    <div className="relative group/tip">
-                      <button onClick={() => setActiveModal('venda')}
-                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors border border-purple-200">
-                        <DollarSign size={12} /> Venda
-                      </button>
-                      <span className="absolute bottom-9 right-0 bg-gray-900 text-white text-xs rounded-lg px-2.5 py-1.5 w-40 text-center opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50 leading-relaxed">Registrar saída por venda com valor e data</span>
-                    </div>
                   )}
                   {isViewer && (
                     <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200">Visualização</span>
@@ -511,78 +541,63 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
               </div>
 
               {/* BODY */}
-              <div className="flex flex-1 overflow-hidden">
-                <div className="w-1/2 border-r border-gray-100 flex flex-col overflow-hidden">
+              <div className="flex flex-col md:flex-row flex-1 overflow-y-auto md:overflow-hidden">
 
-                  <div className="px-5 py-4 flex-shrink-0" style={{ background: 'linear-gradient(160deg, #fff7ed 0%, #ffffff 60%)' }}>
-                    <div className="flex gap-4 items-start">
+                {/* ESQUERDA — tudo o que se sabe sobre o animal */}
+                <div className="w-full md:w-7/12 md:border-r border-b md:border-b-0 border-gray-100 md:overflow-y-auto">
+
+                  <div className="px-4 sm:px-5 py-4" style={{ background: 'linear-gradient(160deg, #fff7ed 0%, #ffffff 60%)' }}>
+                    <div className="flex gap-3 sm:gap-4 items-start">
                       {/* Foto à esquerda */}
                       <div className="flex-shrink-0">
                         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFotoUpload} />
                         {fotoUrl ? (
-                          <div className="relative group w-28 h-28 rounded-xl overflow-hidden cursor-pointer border border-gray-200 shadow-sm"
+                          <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden cursor-pointer border border-gray-200 shadow-sm"
                             onClick={() => setFotoAmpliada(true)}>
                             <img src={fotoUrl} alt="" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <Camera size={16} className="text-white" />
-                            </div>
+                            {!isViewer && (
+                              <div className="absolute bottom-0 inset-x-0 bg-black/50 flex items-center justify-center gap-1 py-1">
+                                <Camera size={11} className="text-white" />
+                                <span className="text-[10px] font-semibold text-white">Editar</span>
+                              </div>
+                            )}
                             {uploadingFoto && <div className="absolute inset-0 bg-white/70 flex items-center justify-center"><Loader size={14} className="text-orange-500 animate-spin" /></div>}
                           </div>
                         ) : (
                           <button onClick={() => !isViewer && fileInputRef.current?.click()} disabled={uploadingFoto || isViewer}
-                            className="w-28 h-28 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-400 bg-orange-50/40 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-1 group">
+                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-400 bg-orange-50/40 hover:bg-orange-50 transition-all flex flex-col items-center justify-center gap-1 group">
                             {uploadingFoto
                               ? <Loader size={14} className="text-orange-400 animate-spin" />
                               : <><Upload size={18} className="text-orange-300 group-hover:text-orange-500 transition-colors" /><span className="text-[10px] font-semibold text-orange-400">Foto</span></>
                             }
                           </button>
                         )}
+                        {fotoError && <p className="text-[10px] text-red-500 mt-1 w-24 sm:w-28 leading-tight">{fotoError}</p>}
                       </div>
-                      {/* Grid raça/categoria/sexo/local à direita */}
+                      {/* Grid categoria/local/sexo/raça à direita */}
                       <div className="grid grid-cols-2 gap-x-4 gap-y-3 flex-1">
                         {[
-                          { label: 'Raça', value: animal.raca },
                           { label: 'Categoria', value: calcularCategoria(animal.nascimento, animal.sexo) || animal.categoria },
-                          { label: 'Sexo', value: animal.sexo },
                           { label: 'Local', value: animal.local },
+                          { label: 'Sexo', value: animal.sexo },
+                          { label: 'Raça', value: animal.raca },
                         ].map(f => (
                           <div key={f.label}>
                             <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-0.5">{f.label}</div>
-                            <div className="text-base font-bold text-gray-900">{f.value || '—'}</div>
+                            {f.label === 'Local' && animal.confinado ? (
+                              <span className="inline-flex items-center gap-1 text-sm font-bold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-200">
+                                <Home size={11} className="fill-blue-400" /> {animal.local}
+                              </span>
+                            ) : (
+                              <div className={`font-bold text-gray-900 ${f.label === 'Local' ? 'text-lg' : 'text-base'}`}>{f.value || '—'}</div>
+                            )}
                           </div>
                         ))}
                       </div>
                     </div>
                   </div>
 
-                  {/* Barra de ações secundárias */}
-                  {!isViewer && (
-                    <div className="px-5 py-2.5 flex items-center gap-1.5 border-b border-gray-100 flex-shrink-0">
-                      {/* Confinamento — ativo se tem histórico */}
-                      <button onClick={() => setActiveModal('conf')}
-                        className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${animal.confinado ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-600'}`}>
-                        <Home size={11} className={animal.confinado ? 'fill-blue-400 text-blue-600' : ''} />
-                        Confinamento
-                      </button>
-                      {/* Reprodução — só fêmeas, ativo se tem histórico */}
-                      {animal.sexo === 'FÊMEA' && (
-                        <button onClick={() => setActiveModal('rep')}
-                          className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${repHistorico.length > 0 ? 'bg-pink-50 text-pink-600 border-pink-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-600'}`}>
-                          <Syringe size={11} className={repHistorico.length > 0 ? 'text-pink-600' : ''} />
-                          Reprodução
-                        </button>
-                      )}
-                      {/* Descarte — toggle, fica vermelho quando ativo */}
-                      <button onClick={toggleDescarte} disabled={togglingDescarte}
-                        className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ml-auto ${animal.descarte ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-red-200 hover:text-red-400'}`}>
-                        <Flag size={11} className={animal.descarte ? 'fill-red-400 text-red-600' : ''} />
-                        Descarte
-                        {!animal.descarte && <span className="text-[9px] text-gray-400 hidden group-hover:inline"> — marcar para venda prioritária</span>}
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="px-5 py-3 flex-shrink-0">
+                  <div className="px-4 sm:px-5 py-3">
                     <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Detalhes</div>
                     <div className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
                       <InfoRow label="Nascimento" value={fd(animal.nascimento)} />
@@ -593,13 +608,14 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                         <div className="flex items-center justify-between py-2.5 px-3.5 border-b border-gray-100 last:border-0">
                           <span className="text-sm text-gray-500">Matriz</span>
                           <button
-                            onClick={() => { onClose(); setTimeout(() => { document.dispatchEvent(new CustomEvent('openAnimalByBrinco', { detail: animal.matriz })) }, 100) }}
+                            onClick={() => abrirAnimalPorBrinco(animal.matriz)}
                             className="font-mono text-sm font-semibold text-orange-500 hover:text-orange-700 hover:underline transition-colors"
                           >
                             #{animal.matriz}
                           </button>
                         </div>
                       )}
+                      {navError && <p className="text-xs text-red-500 px-3.5 py-1.5">{navError}</p>}
                       {animal.cor && <InfoRow label="Cor" value={animal.cor} />}
                       <InfoRow label="Confinado" value={animal.confinado ? 'Sim' : 'Não'} />
                       {animal.confinado && (
@@ -610,7 +626,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                         } />
                       )}
                       {animal.confinado && animal.racao_id && (
-                        <InfoRow label="Início dieta" value={animal.racao_data_inicio ? (() => { const [y,m,d] = animal.racao_data_inicio.split('-'); return `${d}/${m}/${y}` })() : '—'} />
+                        <InfoRow label="Início dieta" value={animal.racao_data_inicio ? fd(animal.racao_data_inicio) : '—'} />
                       )}
                       {animal.status === 'VENDIDO' && <>
                         <InfoRow label="Data de Saída" value={fd(animal.saida)} />
@@ -625,15 +641,15 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                   </div>
 
                   {filhos.length > 0 && (
-                    <div className="px-5 pb-2">
+                    <div className="px-4 sm:px-5 pb-2">
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Filhos</span>
                         <span className="bg-orange-100 text-orange-500 text-xs font-bold px-1.5 py-0.5 rounded-full">{filhos.length}</span>
                       </div>
                       <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
                         {filhos.map((f, i) => (
-                          <button key={f.id} onClick={() => { setAnimal(null); setLoading(true); onClose(); setTimeout(() => { document.dispatchEvent(new CustomEvent('openAnimal', { detail: f.id })) }, 100) }}
-                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-orange-50 transition-colors border-b border-gray-100 last:border-0 text-left">
+                          <button key={f.id} onClick={() => abrirAnimalPorId(f.id)}
+                            className="w-full flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 hover:bg-orange-50 transition-colors border-b border-gray-100 last:border-0 text-left">
                             {i === 0 && <span className="text-xs font-bold text-orange-400 bg-orange-100 px-1.5 py-0.5 rounded flex-shrink-0">Recente</span>}
                             <span className="font-mono font-bold text-gray-900 text-sm flex-shrink-0">#{f.brinco}</span>
                             <span className="text-xs text-gray-500 flex-shrink-0">{f.raca}</span>
@@ -647,12 +663,107 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                     </div>
                   )}
 
-                  <div className="px-5 py-3 flex flex-col flex-1 overflow-hidden">
-                    <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+                  {/* Histórico de pesagens — o registro fica no painel de ações */}
+                  <div className="px-4 sm:px-5 py-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Pesagens</span>
+                      {pesos.length > 0 && <span className="bg-orange-100 text-orange-500 text-xs font-bold px-1.5 py-0.5 rounded-full">{pesos.length}</span>}
+                    </div>
+                    {pesos.length === 0
+                      ? <p className="text-xs text-gray-500 py-2">Nenhuma pesagem registrada</p>
+                      : pesos.map((p, i) => {
+                        const ant = pesos[i + 1]
+                        const ganho = ant ? (p.peso - ant.peso).toFixed(1) : null
+                        return (
+                          <div key={p.id} className="group flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                            <div>
+                              <div className="text-base font-bold text-gray-900 font-mono leading-tight">{p.peso} kg</div>
+                              <div className="text-xs text-gray-500 mt-0.5">{fd(p.data_peso)}</div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {ganho !== null && (
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${parseFloat(ganho) > 0 ? 'bg-orange-50 text-orange-500' : parseFloat(ganho) < 0 ? 'bg-red-50 text-red-400' : 'bg-gray-100 text-gray-500'}`}>
+                                  {parseFloat(ganho) > 0 ? '+' : ''}{ganho} kg
+                                </span>
+                              )}
+                              {!isViewer && <button onClick={() => deletarPeso(p.id)} className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-400"><X size={12} /></button>}
+                            </div>
+                          </div>
+                        )
+                      })
+                    }
+                  </div>
+
+                  {/* Vacinas e medicamentos */}
+                  <div className="px-4 sm:px-5 py-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Vacinas</span>
+                      {vacinas.length > 0 && <span className="bg-green-100 text-green-600 text-xs font-bold px-1.5 py-0.5 rounded-full">{vacinas.length}</span>}
+                    </div>
+                    {!isViewer && (
+                      <div className="space-y-2 mb-3">
+                        <div className="flex gap-2">
+                          <input className="flex-1 text-sm bg-white border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-green-400 transition-colors placeholder-gray-400"
+                            placeholder="Nome da vacina / medicamento"
+                            value={vacinaNome} onChange={e => setVacinaNome(e.target.value)} />
+                          <input type="date" className="text-sm bg-white border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-green-400 transition-colors text-gray-700"
+                            value={vacinaData} onChange={e => setVacinaData(e.target.value)} />
+                        </div>
+                        <div className="flex gap-2">
+                          <input className="flex-1 text-sm bg-white border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-green-400 transition-colors placeholder-gray-400"
+                            placeholder="Observação (opcional)"
+                            value={vacinaObs} onChange={e => setVacinaObs(e.target.value)} />
+                          <select className="text-sm bg-white border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-green-400 transition-colors text-gray-700"
+                            value={vacinaRepetir} onChange={e => setVacinaRepetir(e.target.value)}>
+                            <option value="">Sem repetição</option>
+                            <option value="1">Repetir em 1 mês</option>
+                            <option value="2">Repetir em 2 meses</option>
+                            <option value="3">Repetir em 3 meses</option>
+                            <option value="6">Repetir em 6 meses</option>
+                            <option value="12">Repetir em 12 meses</option>
+                          </select>
+                        </div>
+                        <button onClick={salvarVacina} disabled={savingVacina || !vacinaNome.trim()}
+                          className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl font-bold text-sm transition-all ${vacinaNome.trim() ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                          {savingVacina ? <Loader size={13} className="animate-spin" /> : <Syringe size={13} />}
+                          {!savingVacina && 'Registrar'}
+                        </button>
+                      </div>
+                    )}
+                    {vacinas.length === 0
+                      ? <p className="text-xs text-gray-500 py-2">Nenhuma vacina registrada</p>
+                      : vacinas.map(v => {
+                        const diasProx = v.proxima_data ? Math.ceil((new Date(v.proxima_data) - new Date()) / (1000 * 60 * 60 * 24)) : null
+                        const alerta = diasProx !== null && diasProx <= 14
+                        const vencida = diasProx !== null && diasProx < 0
+                        return (
+                          <div key={v.id} className={`group rounded-xl p-3 mb-2 border ${vencida ? 'border-red-200 bg-red-50' : alerta ? 'border-yellow-200 bg-yellow-50' : 'border-gray-100 bg-gray-50'}`}>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-sm font-bold text-gray-900 truncate">{v.nome}</span>
+                                  {vencida && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full flex-shrink-0">VENCIDA</span>}
+                                  {alerta && !vencida && <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full flex-shrink-0">EM {diasProx}d</span>}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-0.5">{fd(v.data_aplicacao)}{v.observacao ? ` · ${v.observacao}` : ''}</div>
+                                {v.proxima_data && <div className={`text-xs font-semibold mt-1 flex items-center gap-1 ${vencida ? 'text-red-500' : alerta ? 'text-yellow-600' : 'text-green-600'}`}>
+                                  <Bell size={10} /> Próxima: {fd(v.proxima_data)}
+                                </div>}
+                              </div>
+                              {!isViewer && <button onClick={() => deletarVacina(v.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-400 flex-shrink-0 mt-0.5"><Trash2 size={12} /></button>}
+                            </div>
+                          </div>
+                        )
+                      })
+                    }
+                  </div>
+
+                  <div className="px-4 sm:px-5 py-3">
+                    <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Observações</span>
                       {observacoes.length > 0 && <span className="bg-orange-100 text-orange-500 text-xs font-bold px-1.5 py-0.5 rounded-full">{observacoes.length}</span>}
                     </div>
-                    {!isViewer && <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2 flex-shrink-0">
+                    {!isViewer && <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 mb-2">
                       <MessageSquare size={12} className="text-gray-500 flex-shrink-0" />
                       <input className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
                         placeholder="Ex: vacinado contra aftosa..."
@@ -663,7 +774,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                         {savingObs ? <Loader size={10} className="animate-spin text-white" /> : <SaveIcon />}
                       </button>
                     </div>}
-                    <div className="flex-1 overflow-y-auto space-y-0.5">
+                    <div className="space-y-0.5">
                       {observacoes.length === 0
                         ? <p className="text-xs text-gray-500 text-center py-3">Nenhuma observação</p>
                         : observacoes.map(o => (
@@ -672,7 +783,7 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                               <p className="text-sm font-medium text-gray-800 leading-snug">{o.texto}</p>
                               <p className="text-xs text-gray-500 mt-0.5">{fmtRel(o.created_at)}</p>
                             </div>
-                            <button onClick={() => deletarObservacao(o.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-400 flex-shrink-0 mt-0.5"><X size={11} /></button>
+                            {!isViewer && <button onClick={() => deletarObservacao(o.id)} className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-400 flex-shrink-0 mt-0.5"><X size={11} /></button>}
                           </div>
                         ))
                       }
@@ -680,138 +791,123 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
                   </div>
                 </div>
 
-                <div className="w-1/2 flex flex-col">
+                {/* DIREITA — o que fazer com o animal */}
+                <div className="w-full md:w-5/12 md:overflow-y-auto bg-gray-50/40 px-4 sm:px-5 py-4 flex flex-col gap-3.5">
 
-                  <div className="flex flex-col px-5 py-4 flex-1 overflow-hidden">
-                    {/* Tab switcher */}
-                    <div className="flex items-center gap-1 mb-3 flex-shrink-0 bg-gray-100 rounded-xl p-0.5">
-                      <button onClick={() => setRightTab('pesagens')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${rightTab === 'pesagens' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-                        <Scale size={11} /> Pesagens {pesos.length > 0 && <span className="bg-orange-100 text-orange-500 text-[10px] font-bold px-1 rounded-full">{pesos.length}</span>}
-                      </button>
-                      <button onClick={() => setRightTab('vacinas')}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${rightTab === 'vacinas' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-                        <Syringe size={11} /> Vacinas {vacinas.length > 0 && <span className="bg-green-100 text-green-600 text-[10px] font-bold px-1 rounded-full">{vacinas.length}</span>}
-                      </button>
+                  {/* Situação em destaque */}
+                  <div className={`flex items-center gap-3 px-3.5 py-3 rounded-2xl shadow-md ${animal.status === 'ATIVO' ? 'bg-green-600 shadow-green-200' : 'bg-black shadow-gray-300'}`}>
+                    <span className="w-10 h-10 flex-shrink-0 rounded-xl bg-white/20 flex items-center justify-center">
+                      {animal.status === 'ATIVO' ? <CheckCircle2 size={21} className="text-white" /> : <AlertTriangle size={20} className="text-white" />}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-lg font-bold text-white leading-tight">{animal.status === 'ATIVO' ? 'Ativo' : 'Inativo'}</div>
+                      <div className="text-xs text-white/80 truncate">
+                        {animal.status === 'ATIVO'
+                          ? [idade() ? `No rebanho há ${idade()}` : 'No rebanho', animal.local].filter(Boolean).join(' · ')
+                          : [animal.motivo_saida, fd(animal.saida)].filter(Boolean).join(' · ') || 'Fora do rebanho'}
+                      </div>
                     </div>
+                    {!isViewer && (
+                      <button onClick={toggleStatus} disabled={togglingStatus}
+                        title={animal.status === 'ATIVO' ? 'Desativar: registra a saída do animal (morte, transferência, abate)' : 'Reativar: traz o animal de volta ao rebanho'}
+                        className={`flex-shrink-0 px-2.5 py-1 rounded-lg bg-white/95 text-[11px] font-bold hover:bg-white transition-colors disabled:opacity-60 ${animal.status === 'ATIVO' ? 'text-red-600' : 'text-green-700'}`}>
+                        {togglingStatus ? '...' : animal.status === 'ATIVO' ? 'Desativar' : 'Reativar'}
+                      </button>
+                    )}
+                  </div>
 
-                    {/* PESAGENS */}
-                    {rightTab === 'pesagens' && <>
-                      {!isViewer && (
-                        <div className="flex items-center gap-2 mb-3 flex-shrink-0">
-                          <div className="flex items-center gap-2 flex-1 bg-white border-2 border-gray-200 rounded-xl px-3 py-2 focus-within:border-orange-400 transition-colors">
-                            <Scale size={13} className="text-gray-400 flex-shrink-0" />
+                  {!isViewer && (
+                    <>
+                      {/* Registrar peso */}
+                      <div className="rounded-2xl border border-orange-200 bg-orange-50/70 p-3 flex flex-col gap-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-9 h-9 flex-shrink-0 rounded-xl bg-orange-500 flex items-center justify-center">
+                            <Scale size={18} className="text-white" />
+                          </span>
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-orange-700 leading-tight">Registrar peso</div>
+                            <div className="text-xs text-orange-500 mt-0.5">
+                              {animal.peso ? `Último: ${animal.peso} kg${animal.data_peso ? ` em ${fd(animal.data_peso)}` : ''}` : 'Nenhuma pesagem registrada'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 bg-white border-2 border-orange-200 rounded-xl px-3 py-2 focus-within:border-orange-400 transition-colors">
                             <input type="number" step="0.1"
-                              className="w-20 text-sm bg-transparent outline-none text-gray-900 placeholder-gray-400 font-mono font-bold"
-                              placeholder="Peso kg" value={pesoVal}
+                              className="w-16 flex-shrink-0 text-sm bg-transparent outline-none text-gray-900 placeholder-gray-400 font-mono font-bold"
+                              placeholder="Peso" value={pesoVal}
                               onChange={e => setPesoVal(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') salvarPeso() }} />
-                            <div className="w-px h-4 bg-gray-200 flex-shrink-0" />
-                            <input type="date" className="flex-1 text-sm bg-transparent outline-none text-gray-700 font-medium"
+                            <span className="text-xs text-gray-400 font-semibold flex-shrink-0">kg</span>
+                            <div className="w-px h-4 bg-orange-200 flex-shrink-0" />
+                            <input type="date" className="flex-1 min-w-0 w-full text-sm bg-transparent outline-none text-gray-700 font-medium"
                               value={pesoData} onChange={e => setPesoData(e.target.value)} />
                           </div>
                           <button onClick={salvarPeso} disabled={savingPeso || !pesoVal}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all flex-shrink-0 ${pesoVal ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                            {savingPeso ? <Loader size={13} className="animate-spin" /> : <Scale size={13} />}
-                            {!savingPeso && 'OK'}
+                            className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${pesoVal ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                            {savingPeso ? <Loader size={13} className="animate-spin" /> : 'Salvar peso'}
                           </button>
                         </div>
-                      )}
-                      {pesoError && <p className="text-xs text-red-500 mb-1 flex-shrink-0">{pesoError}</p>}
-                      <div className="flex-1 overflow-y-auto">
-                        {pesos.length === 0
-                          ? <div className="flex flex-col items-center justify-center h-16 text-gray-400"><Scale size={18} className="mb-1" /><p className="text-xs">Nenhuma pesagem</p></div>
-                          : pesos.map((p, i) => {
-                            const ant = pesos[i + 1]
-                            const ganho = ant ? (p.peso - ant.peso).toFixed(1) : null
-                            return (
-                              <div key={p.id} className="group flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
-                                <div>
-                                  <div className="text-base font-bold text-gray-900 font-mono leading-tight">{p.peso} kg</div>
-                                  <div className="text-xs text-gray-500 mt-0.5">{fd(p.data_peso)}</div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {i === 0 && <span className="text-[10px] font-bold bg-orange-50 text-orange-400 px-1.5 py-0.5 rounded">Último</span>}
-                                  {ganho !== null && (
-                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${parseFloat(ganho) > 0 ? 'bg-orange-50 text-orange-500' : parseFloat(ganho) < 0 ? 'bg-red-50 text-red-400' : 'bg-gray-100 text-gray-500'}`}>
-                                      {parseFloat(ganho) > 0 ? '+' : ''}{ganho}kg
-                                    </span>
-                                  )}
-                                  <button onClick={() => deletarPeso(p.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-red-400"><X size={12} /></button>
-                                </div>
-                              </div>
-                            )
-                          })
-                        }
+                        {pesoError && <p className="text-xs text-red-500">{pesoError}</p>}
                       </div>
-                    </>}
 
-                    {/* VACINAS */}
-                    {rightTab === 'vacinas' && <>
-                      {!isViewer && (
-                        <div className="space-y-2 mb-3 flex-shrink-0">
-                          <div className="flex gap-2">
-                            <input className="flex-1 text-sm bg-white border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-green-400 transition-colors placeholder-gray-400"
-                              placeholder="Nome da vacina / medicamento"
-                              value={vacinaNome} onChange={e => setVacinaNome(e.target.value)} />
-                            <input type="date" className="text-sm bg-white border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-green-400 transition-colors text-gray-700"
-                              value={vacinaData} onChange={e => setVacinaData(e.target.value)} />
+                      {/* Manejo */}
+                      <div>
+                        <TituloGrupo>Manejo</TituloGrupo>
+                        <div className="mt-2 rounded-2xl border border-gray-200 bg-white overflow-hidden divide-y divide-gray-100">
+                          <LinhaManejo
+                            icone={<Home size={18} />}
+                            titulo="Confinamento"
+                            ativo={animal.confinado}
+                            valor={animal.confinado ? 'Confinado' : (confHistorico.length > 0 ? 'Já esteve' : 'Nunca')}
+                            onClick={() => setActiveModal('conf')}
+                          />
+                          {animal.sexo === 'FÊMEA' && (
+                            <LinhaManejo
+                              icone={<Syringe size={18} />}
+                              titulo="Reprodução"
+                              ativo={repHistorico.length > 0}
+                              valor={repHistorico.length > 0 ? 'Com registros' : 'Sem registros'}
+                              onClick={() => setActiveModal('rep')}
+                            />
+                          )}
+                          <LinhaToggle
+                            icone={<Flag size={18} className={animal.descarte ? 'fill-red-500' : ''} />}
+                            titulo="Descarte"
+                            descricao={animal.descarte ? 'Prioritário na próxima venda' : 'Marcar para venda prioritária'}
+                            ligado={animal.descarte}
+                            onClick={toggleDescarte}
+                            disabled={togglingDescarte}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Saída */}
+                      {animal.status === 'ATIVO' && (
+                        <div>
+                          <TituloGrupo>Saída</TituloGrupo>
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <button onClick={() => setActiveModal('venda')}
+                              className="flex flex-col gap-1.5 px-3 py-3 rounded-2xl border border-gray-200 bg-white text-left hover:border-gray-400 hover:bg-gray-50 transition-all">
+                              <DollarSign size={17} className="text-gray-500" />
+                              <span className="text-sm font-semibold text-gray-800 leading-tight">Registrar venda</span>
+                              <span className="text-xs text-gray-500 leading-snug">Valor, peso e data</span>
+                            </button>
+                            <button onClick={() => setActiveModal('baixa')}
+                              className="flex flex-col gap-1.5 px-3 py-3 rounded-2xl border border-gray-200 bg-white text-left hover:border-gray-400 hover:bg-gray-50 transition-all">
+                              <AlertTriangle size={17} className="text-gray-500" />
+                              <span className="text-sm font-semibold text-gray-800 leading-tight">Dar baixa</span>
+                              <span className="text-xs text-gray-500 leading-snug">Morte ou transferência</span>
+                            </button>
                           </div>
-                          <div className="flex gap-2">
-                            <input className="flex-1 text-sm bg-white border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-green-400 transition-colors placeholder-gray-400"
-                              placeholder="Observação (opcional)"
-                              value={vacinaObs} onChange={e => setVacinaObs(e.target.value)} />
-                            <select className="text-sm bg-white border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-green-400 transition-colors text-gray-700"
-                              value={vacinaRepetir} onChange={e => setVacinaRepetir(e.target.value)}>
-                              <option value="">Sem repetição</option>
-                              <option value="1">Repetir em 1 mês</option>
-                              <option value="2">Repetir em 2 meses</option>
-                              <option value="3">Repetir em 3 meses</option>
-                              <option value="6">Repetir em 6 meses</option>
-                              <option value="12">Repetir em 12 meses</option>
-                            </select>
-                          </div>
-                          <button onClick={salvarVacina} disabled={savingVacina || !vacinaNome.trim()}
-                            className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl font-bold text-sm transition-all ${vacinaNome.trim() ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                            {savingVacina ? <Loader size={13} className="animate-spin" /> : <Syringe size={13} />}
-                            {!savingVacina && 'Registrar'}
-                          </button>
                         </div>
                       )}
-                      <div className="flex-1 overflow-y-auto">
-                        {vacinas.length === 0
-                          ? <div className="flex flex-col items-center justify-center h-16 text-gray-400"><Syringe size={18} className="mb-1" /><p className="text-xs">Nenhuma vacina registrada</p></div>
-                          : vacinas.map(v => {
-                            const diasProx = v.proxima_data ? Math.ceil((new Date(v.proxima_data) - new Date()) / (1000 * 60 * 60 * 24)) : null
-                            const alerta = diasProx !== null && diasProx <= 14
-                            const vencida = diasProx !== null && diasProx < 0
-                            return (
-                              <div key={v.id} className={`group rounded-xl p-3 mb-2 border ${vencida ? 'border-red-200 bg-red-50' : alerta ? 'border-yellow-200 bg-yellow-50' : 'border-gray-100 bg-gray-50'}`}>
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-sm font-bold text-gray-900 truncate">{v.nome}</span>
-                                      {vencida && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full flex-shrink-0">VENCIDA</span>}
-                                      {alerta && !vencida && <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full flex-shrink-0">EM {diasProx}d</span>}
-                                    </div>
-                                    <div className="text-xs text-gray-500 mt-0.5">{fd(v.data_aplicacao)}{v.observacao ? ` · ${v.observacao}` : ''}</div>
-                                    {v.proxima_data && <div className={`text-xs font-semibold mt-1 flex items-center gap-1 ${vencida ? 'text-red-500' : alerta ? 'text-yellow-600' : 'text-green-600'}`}>
-                                      <Bell size={10} /> Próxima: {fd(v.proxima_data)}
-                                    </div>}
-                                  </div>
-                                  <button onClick={() => deletarVacina(v.id)} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-400 flex-shrink-0 mt-0.5"><Trash2 size={12} /></button>
-                                </div>
-                              </div>
-                            )
-                          })
-                        }
-                      </div>
-                    </>}
-                  </div>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <div className="flex justify-end px-5 py-2.5 border-t border-gray-100 flex-shrink-0 bg-gray-50/50">
+              <div className="flex justify-end px-4 sm:px-5 py-2.5 border-t border-gray-100 flex-shrink-0 bg-gray-50/50">
                 <button onClick={onClose} className="px-6 py-1.5 bg-gray-900 hover:bg-gray-700 text-white text-xs font-bold rounded-lg transition-colors tracking-wide">OK</button>
               </div>
             </>
@@ -821,14 +917,29 @@ export default function AnimalPerfil({ isOpen, onClose, animalId, onSaved, onReq
 
       {/* Lightbox foto */}
       {fotoAmpliada && fotoUrl && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setFotoAmpliada(false)}>
-          <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setFotoAmpliada(false)} className="absolute -top-10 right-0 text-white/70 hover:text-white"><X size={24} /></button>
-            <img src={fotoUrl} alt="" className="w-full rounded-2xl shadow-2xl" />
-            {!isViewer && <div className="flex gap-2 mt-3 justify-end">
-              <button onClick={() => { setFotoAmpliada(false); setTimeout(() => fileInputRef.current?.click(), 100) }} className="bg-white text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5"><Camera size={12} /> Trocar foto</button>
-              <button onClick={() => { handleRemoverFoto(); setFotoAmpliada(false) }} className="bg-white text-red-500 text-xs font-semibold px-3 py-1.5 rounded-lg">Remover</button>
-            </div>}
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm" onClick={() => setFotoAmpliada(false)}>
+          <div className="flex flex-col items-center gap-3 w-full max-w-xs" onClick={e => e.stopPropagation()}>
+            <div className="relative w-full">
+              <button onClick={() => setFotoAmpliada(false)}
+                className="absolute -top-3 -right-3 bg-white text-gray-700 hover:text-red-500 hover:bg-gray-100 rounded-full p-1.5 shadow-lg transition-colors z-10">
+                <X size={18} />
+              </button>
+              <img src={fotoUrl} alt="" className="w-full max-h-[55vh] object-contain rounded-2xl shadow-2xl" />
+            </div>
+            {!isViewer && (
+              <div className="flex gap-2 w-full">
+                <button
+                  onClick={() => { setFotoAmpliada(false); setTimeout(() => fileInputRef.current?.click(), 100) }}
+                  className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-800 font-semibold text-sm px-4 py-2.5 rounded-xl shadow">
+                  <Camera size={15} /> Trocar
+                </button>
+                <button
+                  onClick={() => { handleRemoverFoto(); setFotoAmpliada(false) }}
+                  className="flex-1 flex items-center justify-center gap-2 bg-red-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow">
+                  <X size={15} /> Excluir
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

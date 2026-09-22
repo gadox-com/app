@@ -1,0 +1,39 @@
+name: Backup Supabase
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exportar tabelas via API
+        env:
+          # TODO: preencher com a Project URL real do Supabase do GADOX
+          # (Settings -> API -> Project URL). Não é segredo, pode ficar aqui.
+          SUPABASE_URL: https://SEU_PROJECT_ID.supabase.co
+          # A anon key não retorna nada porque o RLS filtra por fazenda_id
+          # do usuário autenticado. Este backup precisa da service_role key
+          # (Settings -> API -> service_role) cadastrada como secret do
+          # repositório com o nome SUPABASE_SERVICE_ROLE_KEY. Nunca commitar
+          # esse valor nem usá-lo no frontend.
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          mkdir backup
+          for tabela in fazendas locais animais reproducao peso_historico confinamento_historico observacoes_animal activity_log vacinas racoes compras_racao; do
+            echo "Exportando $tabela..."
+            curl -s \
+              -H "apikey: $SUPABASE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_KEY" \
+              "$SUPABASE_URL/rest/v1/$tabela?select=*&limit=10000" \
+              -o "backup/$tabela.json"
+          done
+
+      - name: Salvar backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_number }}-$(date +%Y%m%d)
+          path: backup/
+          retention-days: 90

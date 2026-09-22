@@ -1,12 +1,13 @@
 import {
-  LayoutDashboard, Home, Syringe, ShoppingCart,
-  BarChart3, Menu, X, Beef, LogOut, Search, Building2, UtensilsCrossed,
+  LayoutDashboard, Home, Syringe, ShoppingCart, Package,
+  BarChart3, Menu, X, LogOut, Search, Building2,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { LOGO_BASE64 } from '../assets/logo.js'
 import { FAVICON_BASE64 } from '../assets/favicon.js'
+import IconeGado from './IconeGado.jsx'
 
 const PAGE_TO_ROUTE = {
   dashboard: '/dashboard',
@@ -23,9 +24,9 @@ const PAGE_TO_ROUTE = {
 const NAV_ITEMS = [
   { id: 'dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
   { id: 'busca',        label: 'Busca Rápida', icon: Search },
-  { id: 'animais',      label: 'Animais',      icon: Beef },
+  { id: 'animais',      label: 'Animais',      icon: IconeGado },
   { id: 'confinamento', label: 'Confinamento', icon: Home },
-  { id: 'alimentacao',  label: 'Alimentação',  icon: UtensilsCrossed },
+  { id: 'alimentacao',  label: 'Alimentação',  icon: Package },
   { id: 'reproducao',   label: 'Reprodução',   icon: Syringe },
   { id: 'vendas',       label: 'Vendas',       icon: ShoppingCart },
   { id: 'fazendas',     label: 'Fazendas',     icon: Building2 },
@@ -34,7 +35,7 @@ const NAV_ITEMS = [
 
 const MAIS_ITEMS = [
   { id: 'confinamento', label: 'Confinamento', icon: Home },
-  { id: 'alimentacao',  label: 'Alimentação',  icon: UtensilsCrossed },
+  { id: 'alimentacao',  label: 'Alimentação',  icon: Package },
   { id: 'reproducao',   label: 'Reprodução',   icon: Syringe },
   { id: 'vendas',       label: 'Vendas',       icon: ShoppingCart },
   { id: 'fazendas',     label: 'Fazendas',     icon: Building2 },
@@ -55,13 +56,13 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
         ${isOpen ? 'w-60' : 'w-16'} h-screen
       `}>
         {/* Logo */}
-        <div className="border-b border-gray-100 min-h-[80px] flex flex-col justify-center">
+        <div className="border-b border-gray-100 min-h-[96px] flex flex-col justify-center">
           {isOpen ? (
             <div className="px-4 py-4 flex items-center justify-between gap-3">
               <img
                 src={LOGO_BASE64}
                 alt="GadoX"
-                className="h-14 w-auto object-contain"
+                className="h-20 w-auto object-contain"
               />
               <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0">
                 <Menu size={15} />
@@ -72,7 +73,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
               <button onClick={onToggle} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors">
                 <Menu size={15} />
               </button>
-              <img src={FAVICON_BASE64} alt="GadoX" className="w-8 h-8 object-contain" />
+              <img src={FAVICON_BASE64} alt="GadoX" className="w-12 h-12 object-contain" />
             </div>
           )}
         </div>
@@ -129,7 +130,7 @@ export default function Sidebar({ currentPage, onNavigate, isOpen, onToggle, use
           {[
             { id: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
             { id: 'busca',      label: 'Busca',      icon: Search },
-            { id: 'animais',    label: 'Animais',    icon: Beef },
+            { id: 'animais',    label: 'Animais',    icon: IconeGado },
             { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
           ].map(item => {
             const Icon = item.icon

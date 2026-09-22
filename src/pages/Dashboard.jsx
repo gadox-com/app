@@ -1,12 +1,44 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, Beef, TrendingUp, Package, Plus, Bell, Syringe, X } from 'lucide-react'
+import { RefreshCw, AlertCircle, ChevronRight, ArrowUpRight, ArrowDownRight, TrendingUp, Plus, Syringe } from 'lucide-react'
+import IconeGado from '../components/IconeGado.jsx'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import LoadingSpinner from '../components/LoadingSpinner'
 import AnimalModal from '../components/AnimalModal'
 import AnimalPerfil from '../components/AnimalPerfil'
 
 
 const CATEGORIAS_ORDER = ['BEZERRO', 'BEZERRA', 'NOVILHO', 'NOVILHA', 'VACA', 'TOURO', 'BOI']
+
+// Gauge estilo "notch" (arco de 270° com 40 segmentos radiais) — proporção de machos.
+function GaugeMachosFemeas({ machos, femeas }) {
+  const total = machos + femeas
+  const pct = total ? machos / total : 0
+  const N = 40
+  const active = Math.round(pct * N)
+  const cx = 75, cy = 72, r1 = 54, r2 = 68
+  const notches = []
+  for (let i = 0; i < N; i++) {
+    const a = (135 + (i * 270) / (N - 1)) * (Math.PI / 180)
+    notches.push({
+      x1: cx + r1 * Math.cos(a), y1: cy + r1 * Math.sin(a),
+      x2: cx + r2 * Math.cos(a), y2: cy + r2 * Math.sin(a),
+      ativo: i < active,
+    })
+  }
+  return (
+    <svg width="150" height="126" viewBox="0 0 150 126">
+      {notches.map((n, i) => (
+        <line key={i} x1={n.x1} y1={n.y1} x2={n.x2} y2={n.y2}
+          stroke={n.ativo ? '#f97316' : '#e2e4e8'} strokeWidth="5" strokeLinecap="round" />
+      ))}
+      <text x="75" y="76" textAnchor="middle" className="fill-gray-900" fontSize="24" fontWeight="700">
+        {Math.round(pct * 100)}%
+      </text>
+      <text x="75" y="91" textAnchor="middle" className="fill-gray-400" fontSize="10">machos</text>
+    </svg>
+  )
+}
 
 export default function Dashboard({ onNavigate }) {
   // On mobile screens, redirect to Busca Rápida automatically
@@ -133,6 +165,48 @@ export default function Dashboard({ onNavigate }) {
   const pctMachos = ativos.length ? Math.round((machos.length / ativos.length) * 100) : 0
   const pctFemeas = ativos.length ? Math.round((femeas.length / ativos.length) * 100) : 0
 
+  // Saídas agrupadas por motivo (venda, morte, etc.) — motivo vazio conta como venda
+  const motivos = {}
+  vendidos.forEach(a => {
+    const m = (a.motivo_saida || 'venda').trim().toLowerCase()
+    motivos[m] = (motivos[m] || 0) + 1
+  })
+  const motivosResumo = Object.entries(motivos)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([m, c]) => `${c} ${m}${c > 1 && !m.endsWith('s') ? 's' : ''}`)
+    .join(' · ')
+
+  // Variação do mês: entradas (created_at) menos saídas (saida) no mês corrente
+  const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  const entradasMes = animais.filter(a => a.created_at && new Date(a.created_at) >= inicioMes).length
+  const saidasMes = vendidos.filter(a => a.saida && new Date(a.saida + 'T12:00:00') >= inicioMes).length
+  const deltaMes = entradasMes - saidasMes
+
+  // Evolução dos últimos 12 meses: quantos animais estavam ativos ao fim de cada mês
+  const evolucao = []
+  for (let i = 11; i >= 0; i--) {
+    const fim = new Date(new Date().getFullYear(), new Date().getMonth() - i + 1, 0, 23, 59, 59)
+    const count = animais.filter(a => {
+      if (!a.created_at || new Date(a.created_at) > fim) return false
+      if (a.status === 'ATIVO') return true
+      const saidaEm = a.saida ? new Date(a.saida + 'T12:00:00') : (a.updated_at ? new Date(a.updated_at) : null)
+      return saidaEm ? saidaEm > fim : false
+    }).length
+    evolucao.push({ mes: fim.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''), count })
+  }
+  const evolucaoBase = evolucao[0]?.count || 0
+  const evolucaoPct = evolucaoBase ? Math.round(((evolucao[11].count - evolucaoBase) / evolucaoBase) * 100) : null
+
+  const categoriasBarras = [
+    { label: 'Bezerros', value: bezerros.length },
+    { label: 'Novilhos', value: novilhos.length },
+    { label: 'Vacas', value: vacas.length },
+    { label: 'Touros', value: touros.length },
+    { label: 'Bois', value: bois.length },
+  ]
+  const maxCategoria = Math.max(1, ...categoriasBarras.map(c => c.value))
+
   const recentes = [...animais]
     .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
     .slice(0, 8)
@@ -181,23 +255,25 @@ export default function Dashboard({ onNavigate }) {
           <TrendingUp size={16} className="text-orange-200 mb-3" />
           <div className="text-4xl font-bold leading-none">{ativos.length}</div>
           <div className="text-sm font-semibold mt-1 text-white/90">Animais Ativos</div>
-          <div className="text-xs text-orange-200 mt-0.5">{animais.length ? ((ativos.length / animais.length) * 100).toFixed(0) : 0}% do rebanho</div>
+          <div className="text-xs text-orange-200 mt-0.5">
+            {deltaMes >= 0 ? '+' : ''}{deltaMes} este mês · {animais.length ? ((ativos.length / animais.length) * 100).toFixed(0) : 0}% do rebanho
+          </div>
         </div>
 
-        {/* Vendidos */}
+        {/* Saídas do rebanho */}
         <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
-          <Package size={16} className="text-gray-500 mb-3" />
+          <ArrowDownRight size={16} className="text-gray-400 mb-3" />
           <div className="text-4xl font-bold text-gray-500 leading-none">{vendidos.length}</div>
-          <div className="text-sm font-semibold text-gray-500 mt-1">Vendidos</div>
-          <div className="text-xs text-gray-500 mt-0.5">saídas registradas</div>
+          <div className="text-sm font-semibold text-gray-500 mt-1">Saídas do Rebanho</div>
+          <div className="text-xs text-gray-500 mt-0.5">{motivosResumo || 'nenhuma saída registrada'}</div>
         </div>
 
         {/* Total */}
         <div className="rounded-2xl p-5 bg-white border border-gray-100 shadow-sm">
-          <Beef size={16} className="text-orange-400 mb-3" />
+          <IconeGado size={16} className="text-orange-400 mb-3" />
           <div className="text-4xl font-bold text-gray-900 leading-none">{animais.length}</div>
           <div className="text-sm font-semibold text-gray-700 mt-1">Total do Rebanho</div>
-          <div className="text-xs text-gray-500 mt-0.5">animais cadastrados</div>
+          <div className="text-xs text-gray-500 mt-0.5">{ativos.length} ativos · {vendidos.length} saídas</div>
         </div>
 
         {/* Clima — Pinhal de São Bento */}
@@ -227,33 +303,90 @@ export default function Dashboard({ onNavigate }) {
 
 
 
-      {/* 4 boxes: Sexo · Confinamento · Categorias · Por Fazenda */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Evolução + Gauge + Categorias */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
 
-        {/* Distribuição por Sexo */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Distribuição por Sexo</p>
-          <div className="space-y-3">
+        {/* Evolução do rebanho */}
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-baseline justify-between">
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600">Machos</span>
-                <span className="text-sm font-bold text-gray-900">{machos.length} <span className="text-xs font-normal text-gray-400">({pctMachos}%)</span></span>
-              </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-orange-500 to-orange-300 rounded-full transition-all" style={{ width: `${pctMachos}%` }} />
-              </div>
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Evolução do Rebanho</p>
+              <p className="text-xs text-gray-400 mt-0.5">Animais ativos · últimos 12 meses</p>
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-gray-600">Fêmeas</span>
-                <span className="text-sm font-bold text-gray-900">{femeas.length} <span className="text-xs font-normal text-gray-400">({pctFemeas}%)</span></span>
-              </div>
-              <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-gray-300 rounded-full transition-all" style={{ width: `${pctFemeas}%` }} />
-              </div>
+            {evolucaoPct !== null && (
+              <p className="text-xs">
+                <span className={`font-semibold ${evolucaoPct >= 0 ? 'text-green-700' : 'text-red-600'}`}>{evolucaoPct >= 0 ? '+' : ''}{evolucaoPct}%</span>
+                <span className="text-gray-400"> vs. {evolucao[0].mes}</span>
+              </p>
+            )}
+          </div>
+          <div className="h-48 mt-3 -ml-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={evolucao} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="evolucaoFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f97316" stopOpacity={0.14} />
+                    <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="0" stroke="#f0f1f3" vertical={false} />
+                <XAxis dataKey="mes" tick={{ fontSize: 10, fill: '#8f96a3' }} axisLine={{ stroke: '#e2e4e8' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#8f96a3' }} axisLine={false} tickLine={false} width={34} domain={['auto', 'auto']} allowDecimals={false} />
+                <Tooltip
+                  formatter={(v) => [`${v} animais`, 'Ativos']}
+                  contentStyle={{ borderRadius: 10, border: '1px solid #e2e4e8', fontSize: 12 }}
+                />
+                <Area type="monotone" dataKey="count" stroke="#f97316" strokeWidth={2} fill="url(#evolucaoFill)" dot={false} activeDot={{ r: 4, fill: '#f97316', stroke: '#fff', strokeWidth: 2 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Gauge machos × fêmeas */}
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Machos × Fêmeas</p>
+          <p className="text-xs text-gray-400 mt-0.5">Proporção do rebanho ativo</p>
+          <div className="flex justify-center my-2 flex-1 items-center">
+            <GaugeMachosFemeas machos={machos.length} femeas={femeas.length} />
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
+              <span className="text-xs text-gray-700">Machos</span>
+              <span className="ml-auto text-xs font-bold text-gray-900">
+                {machos.length} <span className="font-normal text-gray-400">({pctMachos}%)</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0" />
+              <span className="text-xs text-gray-700">Fêmeas</span>
+              <span className="ml-auto text-xs font-bold text-gray-900">
+                {femeas.length} <span className="font-normal text-gray-400">({pctFemeas}%)</span>
+              </span>
             </div>
           </div>
         </div>
+
+        {/* Por categoria */}
+        <div className="lg:col-span-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Por Categoria</p>
+          <div className="space-y-2.5">
+            {categoriasBarras.map(c => (
+              <div key={c.label} className="flex items-center gap-2.5">
+                <span className="w-16 text-xs text-gray-700 flex-shrink-0">{c.label}</span>
+                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-orange-500 rounded-full" style={{ width: `${(c.value / maxCategoria) * 100}%` }} />
+                </div>
+                <span className="w-7 text-xs font-bold text-gray-900 text-right flex-shrink-0">{c.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Confinamento · Por Fazenda */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
         {/* Confinamento */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -277,25 +410,6 @@ export default function Dashboard({ onNavigate }) {
                 <div className="h-full bg-gray-300 rounded-full transition-all" style={{ width: ativos.length ? `${(soltos.length/ativos.length)*100}%` : '0%' }} />
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Por Categoria */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Por Categoria</p>
-          <div className="space-y-2">
-            {[
-              { label: 'Bezerros', value: bezerros.length },
-              { label: 'Novilhos', value: novilhos.length },
-              { label: 'Vacas', value: vacas.length },
-              { label: 'Touros', value: touros.length },
-              { label: 'Bois', value: bois.length },
-            ].map(c => (
-              <div key={c.label} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{c.label}</span>
-                <span className="text-sm font-bold text-gray-900">{c.value}</span>
-              </div>
-            ))}
           </div>
         </div>
 

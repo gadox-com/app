@@ -274,7 +274,7 @@ export default function Fazendas() {
       {confirmDelete && (
         <Modal title="Confirmar exclusão" onClose={() => setConfirmDelete(null)}>
           <p className="text-sm text-gray-600 mb-5">
-            Excluir o local <span className="font-semibold">"{confirmDelete.nome}"</span>? Os animais neste local não serão afetados.
+            Excluir o local <span className="font-semibold">&ldquo;{confirmDelete.nome}&rdquo;</span>? Os animais neste local não serão afetados.
           </p>
           <div className="flex gap-2">
             <button onClick={() => setConfirmDelete(null)} className="flex-1 border border-gray-200 rounded-xl py-2 text-sm text-gray-600 hover:bg-gray-50">Cancelar</button>
